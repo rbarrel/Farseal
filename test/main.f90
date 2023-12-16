@@ -2,6 +2,7 @@ program tester
   use, intrinsic :: iso_fortran_env, only : error_unit
   use testdrive, only : run_testsuite, new_testsuite, testsuite_type, &
     & select_suite, run_selected, get_argument
+  use test_cooling, only: collect_cooling_suite
   implicit none
   integer :: stat, is
   character(len=:), allocatable :: suite_name, test_name
@@ -11,7 +12,7 @@ program tester
   stat = 0
 
   testsuites = [ &
-    !new_testsuite("suite1", collect_suite1) &
+    new_testsuite("cooling", collect_cooling_suite) &
     ]
 
   call get_argument(1, suite_name)
