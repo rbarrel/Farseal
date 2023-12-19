@@ -2,7 +2,7 @@ program tester
   use, intrinsic :: iso_fortran_env, only : error_unit
   use testdrive, only : run_testsuite, new_testsuite, testsuite_type, &
     & select_suite, run_selected, get_argument
-  use CoolingTest, only: collect_cooling_suite
+  use cooling, only: collect_cooling_suite
   implicit none
   integer :: stat, is
   character(len=:), allocatable :: suite_name, test_name
