@@ -2,14 +2,15 @@ testdrive_dep = dependency('test-drive', required: false)
 
 if testdrive_dep.found()
   tests = [
-    'cooling',
+    'CoolingTest',
   ]
 
   test_srcs = files(
     'main.f90'
   )
+
   foreach t: tests
-    test_srcs += files('test_@0@.f90'.format(t.underscorify()))
+    test_srcs += files('@0@.f90'.format(t.underscorify()))
   endforeach
 
   farseal_test = executable(
