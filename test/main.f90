@@ -3,6 +3,7 @@ program tester
   use testdrive, only : run_testsuite, new_testsuite, testsuite_type, &
     & select_suite, run_selected, get_argument
   use cooling, only: collect_cooling_suite
+  use objective, only: collect_objective_suite
   implicit none
   integer :: stat, is
   character(len=:), allocatable :: suite_name, test_name
@@ -12,7 +13,8 @@ program tester
   stat = 0
 
   testsuites = [ &
-    new_testsuite("cooling", collect_cooling_suite) &
+    new_testsuite("cooling", collect_cooling_suite), &
+    new_testsuite("objective", collect_objective_suite) &
     ]
 
   call get_argument(1, suite_name)

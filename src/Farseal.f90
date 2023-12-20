@@ -3,10 +3,11 @@ module Farseal
   implicit none
 
   private
+  public CoolingMethods, CoolingType, ObjectiveType, AnnealerType
 
   real(kind=real32), parameter :: pi = 4.0_real32 * atan(1.0_real32)
 
-  type, private :: CoolingMethod_Values
+  type :: CoolingMethod_Values
     integer :: LinMult = 1
     integer :: ExpMult = 2
     integer :: LogMult = 3
@@ -17,9 +18,9 @@ module Farseal
     integer :: TrigAdd = 8
   end type
 
-  type(CoolingMethod_Values), public, parameter :: CoolingMethods = CoolingMethod_Values()
+  type(CoolingMethod_Values), parameter :: CoolingMethods = CoolingMethod_Values()
 
-  type, public :: CoolingType
+  type :: CoolingType
     integer :: method = CoolingMethods%LinMult
     real(kind=real32) :: tmax = 100
     real(kind=real32) :: tmin = 0
@@ -34,6 +35,12 @@ module Farseal
       procedure :: init => CoolingMethod_init
       procedure :: cool => CoolingMethod_cool
 
+  end type
+
+  type :: ObjectiveType
+  end type
+
+  type :: AnnealerType
   end type
 
   contains
