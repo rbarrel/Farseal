@@ -48,17 +48,17 @@ module Cooling
       Cooler%cool => FooBar
       starting_temp = Cooler%temp
       call Cooler%cool()
-      ending_temp = Cool%temp
+      ending_temp = Cooler%temp
 
-      call check(error, ending_temp < starting_temp)
+      call check(error, ending_temp > starting_temp)
       if (allocated(error)) return
 
       contains
 
         subroutine FooBar(self)
-          class(CoolingType) :: self
+          class(CoolingType), intent(inout) :: self
 
-          self%temp = self%temp - 1
+          self%temp = self%temp + 1
 
         end subroutine FooBar
 

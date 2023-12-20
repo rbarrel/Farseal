@@ -16,6 +16,7 @@ module Farseal
     integer :: QuadAdd = 6
     integer :: ExpAdd = 7
     integer :: TrigAdd = 8
+    integer :: Custom = 9
   end type CoolingMethod_Values
 
   type(CoolingMethod_Values), parameter :: CoolingMethods = CoolingMethod_Values()
@@ -28,14 +29,21 @@ module Farseal
     integer(kind=int32) :: k = 1
     integer(kind=int32) :: n = 100
     real(kind=real32) :: temp = -1
+    procedure(cooling_subroutine), pointer :: cool => CoolingMethod_cool
     logical, private :: initialized = .false.
 
     contains
 
       procedure :: init => CoolingMethod_init
-      procedure :: cool => CoolingMethod_cool
 
   end type CoolingType
+
+  interface
+    subroutine cooling_subroutine(self)
+      import CoolingType
+      class(CoolingType), intent(inout) :: self
+    end subroutine cooling_subroutine
+  end interface
 
   type :: AnnealerType
   end type AnnealerType
