@@ -16,7 +16,7 @@ module Farseal
     integer :: QuadAdd = 6
     integer :: ExpAdd = 7
     integer :: TrigAdd = 8
-  end type
+  end type CoolingMethod_Values
 
   type(CoolingMethod_Values), parameter :: CoolingMethods = CoolingMethod_Values()
 
@@ -35,13 +35,23 @@ module Farseal
       procedure :: init => CoolingMethod_init
       procedure :: cool => CoolingMethod_cool
 
-  end type
-
-  type :: ObjectiveType
-  end type
+  end type CoolingType
 
   type :: AnnealerType
-  end type
+  end type AnnealerType
+
+  type :: ObjectiveType
+    procedure(objective_function), pointer :: evaluate => null()
+  end type ObjectiveType
+
+  abstract interface
+    function objective_function(self, Annealer) result(energy)
+      import real32, ObjectiveType, AnnealerType
+      class(ObjectiveType) :: self
+      type(AnnealerType), allocatable :: Annealer
+      real(kind=real32) :: energy
+    end function objective_function
+  end interface
 
   contains
 

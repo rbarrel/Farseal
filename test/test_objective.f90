@@ -25,10 +25,11 @@ module Objective
       type(AnnealerType), allocatable :: Annealer
       real(kind=real32) :: expected_energy, actual_energy
 
-      actual_energy = 1.0_real32
+      expected_energy = 1.0_real32
 
       Annealer = AnnealerType()
-      Objective = ObjectiveType(FooBar)
+      Objective = ObjectiveType()
+      Objective%evaluate => FooBar
       actual_energy = Objective%evaluate(Annealer)
 
       call check(error, expected_energy, actual_energy)
@@ -36,11 +37,12 @@ module Objective
 
       contains
 
-        function FooBar(Annealer) result(energy)
-          type(AnnealerType), intent(in) :: Annealer
+        function FooBar(self, Annealer) result(energy)
+          class(ObjectiveType) :: self
+          type(AnnealerType), allocatable :: Annealer
           real(kind=real32) :: energy
 
-          energy = actual_energy
+          energy = expected_energy
 
         end function FooBar
 
