@@ -104,6 +104,8 @@ module Farseal
       case (8) ! TrigAdd
         self%temp = self%tmin + 0.5_real32 * (self%tmax - self%tmin) &
           * (1.0_real32 + cos(self%k * pi / (self%n * 1.0_real32)))
+      case (9) ! Custom
+        stop 'The user MUST select a valid cooling option or give a custom cooling function'
       end select
 
     end subroutine CoolingMethod_cool
