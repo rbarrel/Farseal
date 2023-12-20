@@ -25,6 +25,7 @@ module Cooling
       real(kind=real32) :: starting_temp, ending_temp
 
       Cooler = CoolingType()
+      call Cooler%init()
       Cooler%method = CoolingMethods%ExpAdd
       starting_temp = Cooler%temp
       call Cooler%cool()
