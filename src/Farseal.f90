@@ -41,15 +41,14 @@ module Farseal
   end type AnnealerType
 
   type :: ObjectiveType
-    procedure(objective_function), pointer :: evaluate => null()
+    procedure(objective_function), pointer :: evaluate
   end type ObjectiveType
 
   abstract interface
-    function objective_function(self, Annealer) result(energy)
+    real(kind=real32) function objective_function(self, Annealer)
       import real32, ObjectiveType, AnnealerType
       class(ObjectiveType) :: self
       type(AnnealerType), allocatable :: Annealer
-      real(kind=real32) :: energy
     end function objective_function
   end interface
 

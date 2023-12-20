@@ -28,8 +28,7 @@ module Objective
       expected_energy = 1.0_real32
 
       Annealer = AnnealerType()
-      Objective = ObjectiveType()
-      Objective%evaluate => FooBar
+      Objective = ObjectiveType(FooBar)
       actual_energy = Objective%evaluate(Annealer)
 
       call check(error, expected_energy, actual_energy)
