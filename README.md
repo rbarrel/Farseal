@@ -10,7 +10,7 @@ Requirements:
 
 Description | Suggested Package | Optional?
 --- | --- | ---
-[A Fortran Compiler](https://gcc.gnu.org/fortran/) | GNU Fortran (13.2.1) | No
+[A Modern Fortran Compiler (F2008 or later)](https://gcc.gnu.org/fortran/) | GNU Fortran (13.2.1) | No
 [A BLAS Compliant Sparse Matrix Library](https://librsb.sourceforge.net/) | librsb (1.3.0) | No
 [A Build System](https://mesonbuild.com/) | The Meson Build System (1.3.0) | Yes
 [Backend for Build System](https://ninja-build.org/) | Ninja Build (1.11.1) | Yes
