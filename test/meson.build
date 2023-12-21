@@ -4,6 +4,7 @@ if testdrive_dep.found()
   tests = [
     'cooling',
     'objective',
+    'anneal',
   ]
 
   test_srcs = files(
