@@ -30,6 +30,7 @@ module Anneal
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
       real(kind=real32), dimension(:), allocatable :: VJ, IJ, JJ, VH, IH
+      real(kind=real32) :: energy_initial
 
       istat = rsb_lib_init(eo)
       if (istat .ne. 0) stop
@@ -74,8 +75,17 @@ module Anneal
       IH = [10, 8, 6, 2, 4]
 
       call suscr_begin(n_spins, 1, H, istat)
-      call uscr_insert_entries(H, nnzJ, VH, IH, JH, istat)
+      call uscr_insert_entries(H, nnzH, VH, IH, JH, istat)
       call uscr_end(J, istat)
+
+      energy_initial = ising_hamiltonian(annealer, annealer%state_curr)
+
+      call annealer%optimize()
+
+      ! TODO: Change Condition to Match the Best Hypothetical State Given IC
+      if (.not. annealer%e_best < energy_initial) then
+        call test_failed(error, "")
+      end if
 
       call usds(J, istat)
       call usds(H, istat)
@@ -85,19 +95,32 @@ module Anneal
 
     end subroutine test_discrete_anneal
 
-
     !> Ising Model Hamiltonian (with Magnetic Moment, mu = 1)
     function ising_hamiltonian(sa, state)
-        class(sa_disc_type), intent(inout) :: sa
+        class(DiscreteAnnealType), intent(inout) :: sa
         integer, dimension(:), intent(in) :: state
-        integer, dimension(:,:), allocatable :: state_mat
-        real(8) :: ising_hamiltonian, r
+        integer, dimension(:,:), allocatable :: state_mat, sigma_sigma
+        real(8) :: ising_hamiltonian
 
-        !this line is literally just to ensure that it doesn't complain about not using the variables
-        if(.FALSE.)r=sa%e_best
+        integer :: trans = blas_no_trans
+        integer :: incB = 1, inc_H_sigma = 1
+        real(kind=real32) :: alpha = 1.0_real32
+        real(kind=real32), dimension(:), allocatable :: H_sigma
+        real(kind=real32), dimension(:,:), allocatable :: J_sigma_sigma
 
         state_mat = reshape(spread(state, 2, size(state)), [size(state), size(state)])
-        ising_hamiltonian = -1 * sum(j * state_mat * transpose(state_mat)) - dot_product(h, state)
+
+        sigma_sigma = state_mat * transpose(state_mat)
+        allocate(J_sigma_sigma(size(state), size(state)))
+        J_sigma_sigma(:,:) = 0
+        call usmm(J, sigma_sigma, J_sigma_sigma, istat)
+        J_sigma_sigma = sum(J_sigma_sigma * -1)
+
+        allocate(H_sigma(size(state)))
+        H_sigma(:) = 0
+        call usmv(transposition, alpha, H, state, incB, H_sigma, inc_H_sigma, istat)
+
+        ising_hamiltonian = J_sigma_sigma - H_sigma
 
     end function ising_hamiltonian
 
