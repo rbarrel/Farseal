@@ -4,7 +4,7 @@ module Anneal
   use iso_fortran_env, only: int32, real32
   use testdrive, only: new_unittest, unittest_type, error_type, &
     check, test_failed, skip_test
-  use Farseal, only: DiscreteAnnealType
+  use Farseal, only: DiscreteAnnealType, ObjectiveType
   implicit none
 
   private
@@ -23,8 +23,15 @@ module Anneal
 
     ! Test with Ising Model
     subroutine test_discrete_anneal(error)
+      type, extends(ObjectiveType) :: IsingHamiltonianType
+        integer :: J, H
+        contains
+          procedure, pointer, pass :: energy => ising_hamiltonian
+      end type IsingHamiltonianType
+
       type(error_type), allocatable, intent(out) :: error
       type(DiscreteAnnealType), allocatable :: annealer
+      type(IsingHamiltonianType), allocatable :: IsingHamiltonian
       integer :: n_spins, J, H, nnzJ, nnzH
       integer, dimension(:), allocatable :: state
       type(c_ptr), parameter :: eo = c_null_ptr
@@ -47,7 +54,7 @@ module Anneal
       annealer%mon_cool = .true.
       annealer%prog_bar = .true.
       annealer%resvar = 0.0
-      annealer%energy => ising_hamiltonian
+      annealer%objective => IsingHamiltonian
       annealer%var_values = [1, -1]
       annealer%num_perturb = 1
       allocate(annealer%state_curr(n_spins))
@@ -93,38 +100,38 @@ module Anneal
 
       if (allocated(error)) return
 
+      contains
+
+        !> Ising Model Hamiltonian (with Magnetic Moment, mu = 1)
+        function ising_hamiltonian(sa, state)
+          type(DiscreteAnnealType), intent(inout) :: sa
+          integer, dimension(:), intent(in) :: state
+          integer, dimension(:,:), allocatable :: state_mat, sigma_sigma
+          real(8) :: ising_hamiltonian
+
+          integer :: istat = 0
+          integer :: trans = blas_no_trans
+          integer :: incState = 1, inc_H_sigma = 1
+          real(kind=real32) :: alpha = 1.0_real32
+          real(kind=real32), dimension(:), allocatable :: H_sigma
+          real(kind=real32), dimension(:,:), allocatable :: J_sigma_sigma
+
+          state_mat = reshape(spread(state, 2, size(state)), [size(state), size(state)])
+
+          sigma_sigma = state_mat * transpose(state_mat)
+          allocate(J_sigma_sigma(size(state), size(state)))
+          J_sigma_sigma(:,:) = 0
+          call usmm(sa%objective%J, sigma_sigma, J_sigma_sigma, istat)
+          J_sigma_sigma = sum(J_sigma_sigma * -1)
+
+          allocate(H_sigma(size(state)))
+          H_sigma(:) = 0
+          call usmv(trans, alpha, sa%objective%H, state, incState, H_sigma, inc_H_sigma, istat)
+
+          ising_hamiltonian = J_sigma_sigma - H_sigma
+
+        end function ising_hamiltonian
+
     end subroutine test_discrete_anneal
-
-    !> Ising Model Hamiltonian (with Magnetic Moment, mu = 1)
-    function ising_hamiltonian(sa, state)
-      class(DiscreteAnnealType), intent(inout) :: sa
-      integer, dimension(:), intent(in) :: state
-      integer, dimension(:,:), allocatable :: state_mat, sigma_sigma
-      real(8) :: ising_hamiltonian
-
-      integer :: istat = 0
-      integer :: trans = blas_no_trans
-      integer :: incB = 1, inc_H_sigma = 1
-      real(kind=real32) :: alpha = 1.0_real32
-      real(kind=real32), dimension(:), allocatable :: H_sigma
-      real(kind=real32), dimension(:,:), allocatable :: J_sigma_sigma
-
-      state_mat = reshape(spread(state, 2, size(state)), [size(state), size(state)])
-
-      ! TODO J_sigma_sigma looks too memory intensive (maybe?)
-      ! What is the output of J * J_sigma_sigma?
-      sigma_sigma = state_mat * transpose(state_mat)
-      allocate(J_sigma_sigma(size(state), size(state)))
-      J_sigma_sigma(:,:) = 0
-      call usmm(J, sigma_sigma, J_sigma_sigma, istat)
-      J_sigma_sigma = sum(J_sigma_sigma * -1)
-
-      allocate(H_sigma(size(state)))
-      H_sigma(:) = 0
-      call usmv(trans, alpha, H, state, incB, H_sigma, inc_H_sigma, istat)
-
-      ising_hamiltonian = J_sigma_sigma - H_sigma
-
-    end function ising_hamiltonian
 
 end module Anneal
