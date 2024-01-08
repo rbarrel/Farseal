@@ -2,11 +2,19 @@ module Objective
   use iso_fortran_env, only: int32, real32
   use testdrive, only: new_unittest, unittest_type, error_type, &
     check, test_failed, skip_test
-  use Farseal, only: ObjectiveType, AnnealerType
+  use Farseal, only: ObjectiveType, AnnealerType, objective_interface
   implicit none
 
   private
   public :: collect_objective_suite
+
+  type, extends(AnnealerType) :: TestAnnealerType
+  end type TestAnnealerType
+
+  type, extends(ObjectiveType) :: TestObjectiveType
+    contains
+      procedure :: evaluate
+  end type TestObjectiveType
 
   contains
 
@@ -21,30 +29,28 @@ module Objective
 
     subroutine test_objective(error)
       type(error_type), allocatable, intent(out) :: error
-      type(ObjectiveType), allocatable :: Objective
-      type(AnnealerType), allocatable :: Annealer
+      type(TestObjectiveType), allocatable :: Objective
+      type(TestAnnealerType), allocatable :: Annealer
       real(kind=real32) :: expected_energy, actual_energy
 
       expected_energy = 1.0_real32
 
-      Annealer = AnnealerType()
-      Objective = ObjectiveType(FooBar)
+      Annealer = TestAnnealerType()
+      Objective = ObjectiveType(evaluate)
       actual_energy = Objective%evaluate(Annealer)
 
       call check(error, expected_energy, actual_energy)
       if (allocated(error)) return
 
-      contains
-
-        function FooBar(self, Annealer) result(energy)
-          class(ObjectiveType) :: self
-          type(AnnealerType), allocatable :: Annealer
-          real(kind=real32) :: energy
-
-          energy = expected_energy
-
-        end function FooBar
-
     end subroutine test_objective
+
+    function evaluate(self, Annealer) result(energy)
+      class(TestObjectiveType), intent(inout) :: self
+      class(TestAnnealerType), allocatable :: Annealer
+      real(kind=real32) :: energy, expected_energy
+
+      energy = expected_energy
+
+    end function evaluate
 
 end module Objective

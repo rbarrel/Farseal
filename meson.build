@@ -2,6 +2,7 @@ project(
   'Farseal',
   'fortran',
   version: '0.1',
+  default_options: ['werror=true'],
 )
 
 fc = meson.get_compiler('fortran')
@@ -12,6 +13,7 @@ if fc_id == 'gcc'
   compiler_args = [
     '-Wno-unused-dummy-argument',
     '-Wno-uninitialized',
+    '-Wfatal-errors',
   ]
 
   foreach arg: compiler_args

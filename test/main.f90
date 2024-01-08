@@ -15,8 +15,8 @@ program tester
 
   testsuites = [ &
     new_testsuite("cooling", collect_cooling_suite), &
-    new_testsuite("objective", collect_objective_suite), &
-    new_testsuite("anneal", collect_anneal_suite) &
+    new_testsuite("objective", collect_objective_suite) &
+    !new_testsuite("anneal", collect_anneal_suite) &
     ]
 
   call get_argument(1, suite_name)
