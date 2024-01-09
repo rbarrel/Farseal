@@ -8,10 +8,8 @@ module Objective
   private
   public :: collect_objective_suite
 
-  type, extends(AnnealerType) :: TestAnnealerType
-  end type TestAnnealerType
-
   type, extends(ObjectiveType) :: TestObjectiveType
+    real(kind=real32) :: expected_output = 10_real32
     contains
       procedure :: evaluate
   end type TestObjectiveType
@@ -29,27 +27,28 @@ module Objective
 
     subroutine test_objective(error)
       type(error_type), allocatable, intent(out) :: error
-      type(TestObjectiveType), allocatable :: Objective
-      type(TestAnnealerType), allocatable :: Annealer
+      type(TestObjectiveType), allocatable :: objective
+      integer(kind=real32), dimension(:), allocatable :: state
       real(kind=real32) :: expected_energy, actual_energy
 
-      expected_energy = 1.0_real32
+      expected_energy = 10_real32
+      allocate(state(1))
+      state(:) = 0
 
-      Annealer = TestAnnealerType()
-      Objective = ObjectiveType(evaluate)
-      actual_energy = Objective%evaluate(Annealer)
+      objective = TestObjectiveType()
+      actual_energy = objective%evaluate(state)
 
       call check(error, expected_energy, actual_energy)
       if (allocated(error)) return
 
     end subroutine test_objective
 
-    function evaluate(self, Annealer) result(energy)
+    function evaluate(self, state) result(energy)
       class(TestObjectiveType), intent(inout) :: self
-      class(TestAnnealerType), allocatable :: Annealer
-      real(kind=real32) :: energy, expected_energy
+      integer(kind=real32), dimension(:), intent(in) :: state
+      real(kind=real32) :: energy
 
-      energy = expected_energy
+      energy = self%expected_output
 
     end function evaluate
 

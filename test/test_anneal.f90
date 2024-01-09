@@ -103,8 +103,8 @@ module Anneal
       contains
 
         !> Ising Model Hamiltonian (with Magnetic Moment, mu = 1)
-        function ising_hamiltonian(sa, state)
-          type(DiscreteAnnealType), intent(inout) :: sa
+        function ising_hamiltonian(objective, state)
+          type(IsingHamiltonianType), intent(inout) :: objective
           integer, dimension(:), intent(in) :: state
           integer, dimension(:,:), allocatable :: state_mat, sigma_sigma
           real(8) :: ising_hamiltonian
@@ -121,12 +121,12 @@ module Anneal
           sigma_sigma = state_mat * transpose(state_mat)
           allocate(J_sigma_sigma(size(state), size(state)))
           J_sigma_sigma(:,:) = 0
-          call usmm(sa%objective%J, sigma_sigma, J_sigma_sigma, istat)
+          call usmm(objective%J, sigma_sigma, J_sigma_sigma, istat)
           J_sigma_sigma = sum(J_sigma_sigma * -1)
 
           allocate(H_sigma(size(state)))
           H_sigma(:) = 0
-          call usmv(trans, alpha, sa%objective%H, state, incState, H_sigma, inc_H_sigma, istat)
+          call usmv(trans, alpha, objective%H, state, incState, H_sigma, inc_H_sigma, istat)
 
           ising_hamiltonian = J_sigma_sigma - H_sigma
 

@@ -46,7 +46,7 @@ module Farseal
     end subroutine cooling_subroutine
   end interface
 
-  type, abstract :: AnnealerType
+  type :: AnnealerType
     integer :: max_step = 100
     integer :: total_steps = 0
     real(kind=real32) :: alpha = 0.01_real32
@@ -65,7 +65,7 @@ module Farseal
   type, extends(AnnealerType) :: DiscreteAnnealType
     integer, pointer, dimension(:) :: state_curr
     integer, allocatable, dimension(:) :: state_neigh, state_best, var_values
-    integer :: num_perturb=0
+    integer :: num_perturb = 0
     contains
       procedure, pass :: get_neigh => get_neigh_disc
   end type DiscreteAnnealType
@@ -76,11 +76,11 @@ module Farseal
   end type ObjectiveType
 
   interface
-    function objective_interface(self, Annealer) result(energy)
+    function objective_interface(self, state) result(energy)
       use iso_fortran_env, only: real32
-      import ObjectiveType, AnnealerType
+      import ObjectiveType
       class(ObjectiveType), intent(inout) :: self
-      class(AnnealerType), intent(inout) :: Annealer
+      integer(kind=real32), dimension(:), intent(in) :: state
       real(kind=real32) :: energy
     end function objective_interface
   end interface

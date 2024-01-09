@@ -4,7 +4,7 @@ program tester
     & select_suite, run_selected, get_argument
   use cooling, only: collect_cooling_suite
   use objective, only: collect_objective_suite
-  use anneal, only: collect_anneal_suite
+  !use anneal, only: collect_anneal_suite
   implicit none
   integer :: stat, is
   character(len=:), allocatable :: suite_name, test_name

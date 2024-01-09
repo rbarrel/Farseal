@@ -22,6 +22,6 @@ if testdrive_dep.found()
   )
 
   foreach t: tests
-    test('TEST @0@'.format(t.to_upper()), farseal_test, args: t)
+    test('@0@'.format(t.to_upper()), farseal_test, args: t)
   endforeach
 endif
