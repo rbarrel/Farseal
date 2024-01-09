@@ -28,12 +28,12 @@ module Objective
     subroutine test_objective(error)
       type(error_type), allocatable, intent(out) :: error
       type(TestObjectiveType), allocatable :: objective
-      integer(kind=real32), dimension(:), allocatable :: state
+      real(kind=real32), dimension(:), allocatable :: state
       real(kind=real32) :: expected_energy, actual_energy
 
       expected_energy = 10_real32
       allocate(state(1))
-      state(:) = 0
+      state(:) = 0.0_real32
 
       objective = TestObjectiveType()
       actual_energy = objective%evaluate(state)
@@ -45,7 +45,7 @@ module Objective
 
     function evaluate(self, state) result(energy)
       class(TestObjectiveType), intent(inout) :: self
-      integer(kind=real32), dimension(:), intent(in) :: state
+      real(kind=real32), dimension(:), intent(in) :: state
       real(kind=real32) :: energy
 
       energy = self%expected_output
