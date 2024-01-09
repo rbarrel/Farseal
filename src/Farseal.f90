@@ -4,7 +4,7 @@ module Farseal
 
   private
   public CoolingMethods, CoolingType, ObjectiveType, AnnealerType, &
-    DiscreteAnnealType, objective_interface
+    DiscreteAnnealType
 
   real(kind=real32), parameter :: pi = 4.0_real32 * atan(1.0_real32)
 
@@ -32,11 +32,8 @@ module Farseal
     real(kind=real32) :: temp = -1
     procedure(cooling_subroutine), pointer :: cool => CoolingMethod_cool
     logical, private :: initialized = .false.
-
     contains
-
       procedure :: init => CoolingMethod_init
-
   end type CoolingType
 
   interface
@@ -59,7 +56,7 @@ module Farseal
     real(kind=real32) :: resvar = 0.0_real32
     ! @@@ TODO: Maybe use the CoolingType Here to Replace some of these? ^^^
     contains
-      procedure, pass :: optimize
+      procedure, pass(self) :: optimize
   end type AnnealerType
 
   type, extends(AnnealerType) :: DiscreteAnnealType
@@ -67,12 +64,12 @@ module Farseal
     integer, allocatable, dimension(:) :: state_neigh, state_best, var_values
     integer :: num_perturb = 0
     contains
-      procedure, pass :: get_neigh => get_neigh_disc
+      procedure, pass(self) :: get_neigh => get_neigh_disc
   end type DiscreteAnnealType
 
   type, abstract :: ObjectiveType
     contains
-      procedure(objective_interface), deferred, pass :: evaluate
+      procedure(objective_interface), deferred, pass(self) :: evaluate
   end type ObjectiveType
 
   interface

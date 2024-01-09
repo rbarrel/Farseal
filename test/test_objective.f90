@@ -2,7 +2,7 @@ module Objective
   use iso_fortran_env, only: int32, real32
   use testdrive, only: new_unittest, unittest_type, error_type, &
     check, test_failed, skip_test
-  use Farseal, only: ObjectiveType, AnnealerType, objective_interface
+  use Farseal, only: ObjectiveType, AnnealerType
   implicit none
 
   private
