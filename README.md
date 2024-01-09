@@ -17,3 +17,5 @@ Backend for Build System | [Ninja Build (1.11.1)](https://ninja-build.org/) | No
 A Fortran Testing Library | [test-drive (0.4.0)](https://github.com/fortran-lang/test-drive) | Yes
 
 Clone the repository then run `meson setup build` and `meson install -C build` to install Farseal as a library on your system.
+
+If you want to be able to run the test suite, install `test-drive` using `meson`.
