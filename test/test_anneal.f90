@@ -32,7 +32,8 @@ private
       type(DiscreteAnnealType), allocatable :: annealer
       type(IsingHamiltonianType), allocatable :: IsingHamiltonian
       integer :: n_spins, J, H, nnzJ, nnzH
-      real(kind=real32), dimension(:), allocatable :: state
+      ! @@@ TODO: target was necessary for compilation to take place
+      real(kind=real32), dimension(:), allocatable, target :: state
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
       integer, dimension(:), allocatable :: IJ, JJ, IH, JH
@@ -46,6 +47,7 @@ private
       allocate(state(n_spins))
       state = [-1, 1, -1, 1, -1, 1, -1, 1, -1, 1]
 
+      annealer = DiscreteAnnealType(state_curr=state)
       annealer%max_step = 100
       annealer%alpha = 0.01
       annealer%t_max = 100.0
@@ -80,8 +82,11 @@ private
       VH = [5, 4, 3, 2, 1]
       allocate(IH(nnzH))
       IH = [10, 8, 6, 2, 4]
+      allocate(JH(nnzH))
+      JH = [1, 1, 1, 1, 1]
 
       call suscr_begin(n_spins, 1, H, istat)
+      call ussp(H, blas_general, istat)
       call suscr_insert_entries(H, nnzH, VH, IH, JH, istat)
       call uscr_end(J, istat)
 
@@ -91,7 +96,7 @@ private
 
       ! TODO: Change Condition to Match the Best Hypothetical State Given IC
       if (.not. annealer%e_best < energy_initial) then
-        call test_failed(error, "")
+        call test_failed(error, "Blarg")
       end if
 
       call usds(J, istat)
@@ -121,22 +126,43 @@ private
       sigma_sigma = state_mat * transpose(state_mat)
       allocate(J_sigma_sigma(size(state), size(state)))
       J_sigma_sigma(:,:) = 0
-      !call usmm(self%J, sigma_sigma, J_sigma_sigma, istat)
+      ! @@@ TODO: Generic is usmm
+      ! order(int), transA(int), nrhs(int), alpha(real), A(int), b(real(:,:)), ldb(int), c(real(:,:)), ldc(int), istat(int)
+      !call susmm( &
+        !order=, &
+        !transA=trans, &
+        !nrhs=, &
+        !alpha=alpha, &
+        !A=self%J, &
+        !b=, &
+        !ldb=, &
+        !c=, &
+        !ldc=, &
+        !istat=istat &
+      !)
+      !call susmm(order=order, transA=trans, alpha=alpha, A=self%J, x=sigma_sigma, J_sigma_sigma, istat)
       J_sigma_sigma = sum(J_sigma_sigma * (-1))
 
       allocate(H_sigma(size(state)))
       H_sigma(:) = 0.0_real32
-      call usmv( &
-        transA=trans, &
-        alpha=alpha, &
-        A=self%H, &
-        X=state, &
-        incX=incState, &
-        y=H_sigma, &
-        incY=inc_H_sigma, &
-        istat=istat &
-      )
-      !call susmv(transA=trans, alpha=alpha, A=self%H, B=state, incB=incState, x=H_sigma, incx=inc_H_sigma, istat=istat)
+      if (.false.) then
+        alpha = 1.0_real32
+        inc_h_sigma = 2
+        incstate = 3
+        istat = 0
+        trans = 0
+      end if
+
+!      call usmv( &
+!        transA=trans, &
+!        alpha=alpha, &
+!        A=self%H, &
+!        x=state, &
+!        incX=incState, &
+!        y=H_sigma, &
+!        incY=inc_H_sigma, &
+!        istat=istat &
+!      )
 
       ising_hamiltonian = sum(H_sigma)
       !ising_hamiltonian = J_sigma_sigma - H_sigma
