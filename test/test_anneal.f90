@@ -128,41 +128,33 @@ private
       J_sigma_sigma(:,:) = 0
       ! @@@ TODO: Generic is usmm
       ! order(int), transA(int), nrhs(int), alpha(real), A(int), b(real(:,:)), ldb(int), c(real(:,:)), ldc(int), istat(int)
-      !call susmm( &
-        !order=, &
-        !transA=trans, &
-        !nrhs=, &
-        !alpha=alpha, &
-        !A=self%J, &
-        !b=, &
-        !ldb=, &
-        !c=, &
-        !ldc=, &
-        !istat=istat &
-      !)
+      call susmm( &
+        order=blas_colmajor, &
+        transA=trans, &
+        nrhs=size(state), &
+        alpha=alpha, &
+        A=self%J, &
+        b=sigma_sigma, &
+        ldb=size(state), &
+        c=J_sigma_sigma, &
+        ldc=size(state), &
+        istat=istat &
+      )
       !call susmm(order=order, transA=trans, alpha=alpha, A=self%J, x=sigma_sigma, J_sigma_sigma, istat)
       J_sigma_sigma = sum(J_sigma_sigma * (-1))
 
       allocate(H_sigma(size(state)))
       H_sigma(:) = 0.0_real32
-      if (.false.) then
-        alpha = 1.0_real32
-        inc_h_sigma = 2
-        incstate = 3
-        istat = 0
-        trans = 0
-      end if
-
-!      call usmv( &
-!        transA=trans, &
-!        alpha=alpha, &
-!        A=self%H, &
-!        x=state, &
-!        incX=incState, &
-!        y=H_sigma, &
-!        incY=inc_H_sigma, &
-!        istat=istat &
-!      )
+      call usmv( &
+        transA=trans, &
+        alpha=alpha, &
+        A=self%H, &
+        x=state, &
+        incX=incState, &
+        y=H_sigma, &
+        incY=inc_H_sigma, &
+        istat=istat &
+      )
 
       ising_hamiltonian = sum(H_sigma)
       !ising_hamiltonian = J_sigma_sigma - H_sigma
