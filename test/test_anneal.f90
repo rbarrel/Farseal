@@ -1,6 +1,7 @@
 module Anneal
   use rsb
   use blas_sparse
+  use iso_c_binding
   use iso_fortran_env, only: int32, real32, real64
   use testdrive, only: new_unittest, unittest_type, error_type, &
     check, test_failed, skip_test
@@ -10,7 +11,7 @@ private
   public :: collect_anneal_suite
 
   type, extends(ObjectiveType) :: IsingHamiltonianType
-    integer :: J, H
+    integer :: J = -1, H = -1
     contains
       procedure :: evaluate => ising_hamiltonian
   end type IsingHamiltonianType
@@ -36,16 +37,21 @@ private
       real(kind=real32), dimension(:), allocatable, target :: state
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
+      integer(kind=rsb_idx_kind) :: res
+      integer(kind=c_int), target :: ione = 1
       integer, dimension(:), allocatable :: IJ, JJ, IH, JH
       real(kind=real32), dimension(:), allocatable :: VJ, VH
       real(kind=real32) :: energy_initial
 
       istat = rsb_lib_init(eo)
       if (istat .ne. 0) stop
+      res = rsb_lib_set_opt(rsb_io_want_verbose_tuning,c_loc(ione))
 
       n_spins = 10
       allocate(state(n_spins))
       state = [-1, 1, -1, 1, -1, 1, -1, 1, -1, 1]
+
+      IsingHamiltonian = IsingHamiltonianType()
 
       annealer = DiscreteAnnealType(state_curr=state)
       annealer%max_step = 100
@@ -76,6 +82,8 @@ private
       call suscr_insert_entries(J, nnzJ, VJ, IJ, JJ, istat)
       call uscr_end(J, istat)
 
+      IsingHamiltonian%J = J
+
       ! H vector
       nnzH = 5
       allocate(VH(nnzH))
@@ -89,6 +97,8 @@ private
       call ussp(H, blas_general, istat)
       call suscr_insert_entries(H, nnzH, VH, IH, JH, istat)
       call uscr_end(J, istat)
+
+      IsingHamiltonian%H = H
 
       energy_initial = IsingHamiltonian%evaluate(annealer%state_curr)
 
@@ -111,37 +121,29 @@ private
     function ising_hamiltonian(self, state)
       class(IsingHamiltonianType), intent(inout) :: self
       real(kind=real32), dimension(:), intent(in) :: state
-      real(kind=real32), dimension(:,:), allocatable :: state_mat, sigma_sigma
       real(kind=real32) :: ising_hamiltonian
 
       integer :: istat = 0
       integer :: trans = blas_no_trans
-      integer :: incState = 1, inc_H_sigma = 1
+      integer :: incState = 1, inc_H_sigma = 1, inc_J_sigma = 1
       real(kind=real32) :: alpha = 1.0_real32
-      real(kind=real32), dimension(:), allocatable :: H_sigma
-      real(kind=real32), dimension(:,:), allocatable :: J_sigma_sigma
+      real(kind=real32) :: J_sigma_sigma
+      real(kind=real32), dimension(:), allocatable :: H_sigma, J_sigma
 
-      state_mat = reshape(spread(state, 2, size(state)), [size(state), size(state)])
-
-      sigma_sigma = state_mat * transpose(state_mat)
-      allocate(J_sigma_sigma(size(state), size(state)))
-      J_sigma_sigma(:,:) = 0
-      ! @@@ TODO: Generic is usmm
-      ! order(int), transA(int), nrhs(int), alpha(real), A(int), b(real(:,:)), ldb(int), c(real(:,:)), ldc(int), istat(int)
-      call susmm( &
-        order=blas_colmajor, &
+      allocate(J_sigma(size(state)))
+      J_sigma(:) = 0.0_real32
+      call usmv( &
         transA=trans, &
-        nrhs=size(state), &
         alpha=alpha, &
         A=self%J, &
-        b=sigma_sigma, &
-        ldb=size(state), &
-        c=J_sigma_sigma, &
-        ldc=size(state), &
+        x=state, &
+        incX=incState, &
+        y=J_sigma, &
+        incY=inc_J_sigma, &
         istat=istat &
       )
-      !call susmm(order=order, transA=trans, alpha=alpha, A=self%J, x=sigma_sigma, J_sigma_sigma, istat)
-      J_sigma_sigma = sum(J_sigma_sigma * (-1))
+
+      J_sigma_sigma = dot_product(J_sigma, state)
 
       allocate(H_sigma(size(state)))
       H_sigma(:) = 0.0_real32
@@ -156,8 +158,7 @@ private
         istat=istat &
       )
 
-      ising_hamiltonian = sum(H_sigma)
-      !ising_hamiltonian = J_sigma_sigma - H_sigma
+      ising_hamiltonian = -1 * (J_sigma_sigma + sum(H_sigma))
 
     end function ising_hamiltonian
 
