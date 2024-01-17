@@ -47,9 +47,16 @@ private
       if (istat .ne. 0) stop
       res = rsb_lib_set_opt(rsb_io_want_verbose_tuning,c_loc(ione))
 
-      n_spins = 10
+      n_spins = 100
       allocate(state(n_spins))
-      state = [-1, 1, -1, 1, -1, 1, -1, 1, -1, 1]
+      state = [ &
+        1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, &
+        -1, -1, 1, 1, 1, -1, 1, -1, -1, 1, 1, 1, 1, 1, 1, -1, -1, -1, &
+        -1, -1, 1, 1, -1, 1, -1, 1, -1, -1, -1, 1, -1, 1, 1, -1, -1, 1, &
+        1, -1, -1, -1, 1, 1, -1, -1, -1, 1, 1, 1, 1, -1, 1, 1, 1, -1, &
+        1, -1, -1, -1, 1, 1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, 1, &
+        -1, -1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1 &
+      ]
 
       IsingHamiltonian = IsingHamiltonianType()
 
@@ -69,13 +76,24 @@ private
       annealer%state_curr = state
 
       ! J matrix
-      nnzJ = 3
+      nnzJ = 10
       allocate(VJ(nnzJ))
-      VJ = [10, 20, 30]
+      VJ = [ &
+        -1.561563606294591, &
+        -9.404055611238594, &
+        -5.627240503927933, &
+        0.10710576206724731, &
+        -9.469280606322727, &
+        -6.02324698626703, &
+        2.997688755590463, &
+        0.8988296120643327, &
+        -5.591187559186066, &
+        1.7853136775181753 &
+      ]
       allocate(IJ(nnzJ))
-      IJ = [3, 2, 1]
+      IJ = [18, 4, 45, 40, 36, 22, 16, 89, 14, 96]
       allocate(JJ(nnzJ))
-      JJ = [2, 3, 1]
+      JJ = [24, 9, 6, 12, 57, 86, 79, 35, 24, 74]
 
       call suscr_begin(n_spins, n_spins, J, istat)
       call ussp(J, blas_symmetric, istat)
@@ -85,22 +103,34 @@ private
       IsingHamiltonian%J = J
 
       ! H vector
-      nnzH = 5
+      nnzH = 10
       allocate(VH(nnzH))
-      VH = [5, 4, 3, 2, 1]
+      VH = [ &
+        -8.145083132397042, &
+        -8.06567246333072, &
+        6.949887326949195, &
+        2.0745206273378223, &
+        6.142565465487603, &
+        4.594635733876357, &
+        0.7245618290940143, &
+        9.462315279587411, &
+        -2.42931245583293, &
+        1.0408126254645396 &
+      ]
       allocate(IH(nnzH))
-      IH = [10, 8, 6, 2, 4]
+      IH = [0, 97, 20, 89, 54, 43, 35, 19, 27, 13]
       allocate(JH(nnzH))
-      JH = [1, 1, 1, 1, 1]
+      JH(:) = 1
 
       call suscr_begin(n_spins, 1, H, istat)
       call ussp(H, blas_general, istat)
       call suscr_insert_entries(H, nnzH, VH, IH, JH, istat)
-      call uscr_end(J, istat)
+      call uscr_end(H, istat)
 
       IsingHamiltonian%H = H
 
       energy_initial = IsingHamiltonian%evaluate(annealer%state_curr)
+      print *, energy_initial
 
       call annealer%optimize()
 
