@@ -37,15 +37,15 @@ private
       real(kind=real32), dimension(:), allocatable, target :: state
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
-      integer(kind=rsb_idx_kind) :: res
-      integer(kind=c_int), target :: ione = 1
+      !integer(kind=rsb_idx_kind) :: res
+      !integer(kind=c_int), target :: ione = 1
       integer, dimension(:), allocatable :: IJ, JJ, IH, JH
       real(kind=real32), dimension(:), allocatable :: VJ, VH
       real(kind=real32) :: energy_initial
 
       istat = rsb_lib_init(eo)
       if (istat .ne. 0) stop
-      res = rsb_lib_set_opt(rsb_io_want_verbose_tuning,c_loc(ione))
+      !res = rsb_lib_set_opt(rsb_io_want_verbose_tuning,c_loc(ione))
 
       n_spins = 100
       allocate(state(n_spins))
@@ -57,6 +57,7 @@ private
         1, -1, -1, -1, 1, 1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, 1, &
         -1, -1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1 &
       ]
+      !state(:) = 1
 
       IsingHamiltonian = IsingHamiltonianType()
 
@@ -91,12 +92,16 @@ private
         1.7853136775181753 &
       ]
       allocate(IJ(nnzJ))
-      IJ = [18, 4, 45, 40, 36, 22, 16, 89, 14, 96]
+      !IJ = [18, 4, 45, 40, 36, 22, 16, 89, 14, 96]
+      IJ = [19, 5, 46, 41, 37, 23, 17, 90, 15, 97]
       allocate(JJ(nnzJ))
-      JJ = [24, 9, 6, 12, 57, 86, 79, 35, 24, 74]
+      !JJ = [24, 9, 6, 12, 57, 86, 79, 35, 24, 74]
+      JJ = [25, 10, 7, 13, 58, 87, 80, 36, 25, 75]
 
       call suscr_begin(n_spins, n_spins, J, istat)
       call ussp(J, blas_symmetric, istat)
+      call ussp(J, blas_one_base, istat)
+      call ussp(J, blas_rowmajor, istat)
       call suscr_insert_entries(J, nnzJ, VJ, IJ, JJ, istat)
       call uscr_end(J, istat)
 
@@ -118,19 +123,22 @@ private
         1.0408126254645396 &
       ]
       allocate(IH(nnzH))
-      IH = [0, 97, 20, 89, 54, 43, 35, 19, 27, 13]
+      !IH = [0, 97, 20, 89, 54, 43, 35, 19, 27, 13]
+      IH = [1, 98, 21, 90, 55, 44, 36, 20, 28, 14]
       allocate(JH(nnzH))
       JH(:) = 1
 
       call suscr_begin(n_spins, 1, H, istat)
       call ussp(H, blas_general, istat)
+      call ussp(H, blas_one_base, istat)
+      call ussp(H, blas_rowmajor, istat)
       call suscr_insert_entries(H, nnzH, VH, IH, JH, istat)
       call uscr_end(H, istat)
 
       IsingHamiltonian%H = H
 
       energy_initial = IsingHamiltonian%evaluate(annealer%state_curr)
-      print *, energy_initial
+      !print *, energy_initial
 
       call annealer%optimize()
 
@@ -154,7 +162,6 @@ private
       real(kind=real32) :: ising_hamiltonian
 
       integer :: istat = 0
-      integer :: trans = blas_no_trans
       integer :: incState = 1, inc_H_sigma = 1, inc_J_sigma = 1
       real(kind=real32) :: alpha = 1.0_real32
       real(kind=real32) :: J_sigma_sigma
@@ -163,7 +170,7 @@ private
       allocate(J_sigma(size(state)))
       J_sigma(:) = 0.0_real32
       call usmv( &
-        transA=trans, &
+        transA=blas_no_trans, &
         alpha=alpha, &
         A=self%J, &
         x=state, &
@@ -178,7 +185,7 @@ private
       allocate(H_sigma(size(state)))
       H_sigma(:) = 0.0_real32
       call usmv( &
-        transA=trans, &
+        transA=blas_trans, &
         alpha=alpha, &
         A=self%H, &
         x=state, &
@@ -189,6 +196,7 @@ private
       )
 
       ising_hamiltonian = -1 * (J_sigma_sigma + sum(H_sigma))
+      print *, ising_hamiltonian
 
     end function ising_hamiltonian
 
