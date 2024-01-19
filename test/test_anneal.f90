@@ -7,13 +7,11 @@ module Anneal
     check, test_failed, skip_test
   use Farseal, only: DiscreteAnnealType, ObjectiveType, CoolingMethods
   implicit none
-private
+  private
   public :: collect_anneal_suite
 
   type, extends(ObjectiveType) :: IsingHamiltonianType
     integer :: J = -1, H = -1
-    contains
-      procedure :: evaluate => ising_hamiltonian
   end type IsingHamiltonianType
 
   contains
@@ -37,6 +35,7 @@ private
       real(kind=real32), dimension(:), allocatable, target :: state
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
+      ! @@@ TODO: Enable for Verbose Logging
       !integer(kind=rsb_idx_kind) :: res
       !integer(kind=c_int), target :: ione = 1
       integer, dimension(:), allocatable :: IJ, JJ, IH, JH
@@ -45,6 +44,7 @@ private
 
       istat = rsb_lib_init(eo)
       if (istat .ne. 0) stop
+      ! @@@ TODO: Enable for Verbose Logging
       !res = rsb_lib_set_opt(rsb_io_want_verbose_tuning,c_loc(ione))
 
       n_spins = 100
@@ -57,20 +57,14 @@ private
         1, -1, -1, -1, 1, 1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, 1, &
         -1, -1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1 &
       ]
-      !state(:) = 1
 
       IsingHamiltonian = IsingHamiltonianType()
 
       annealer = DiscreteAnnealType(state_curr=state)
       annealer%max_step = 100
-      annealer%alpha = 0.01
-      annealer%t_max = 100.0
-      annealer%t_min = 0.0
-      annealer%cool_opt = CoolingMethods%QuadAdd
-      annealer%mon_cool = .true.
       annealer%prog_bar = .true.
       annealer%resvar = 0.0
-      !annealer%objective => IsingHamiltonian
+      annealer%objective%evaluate => ising_hamiltonian
       annealer%var_values = [1, -1]
       annealer%num_perturb = 1
       allocate(annealer%state_curr(n_spins))
@@ -92,10 +86,8 @@ private
         1.7853136775181753 &
       ]
       allocate(IJ(nnzJ))
-      !IJ = [18, 4, 45, 40, 36, 22, 16, 89, 14, 96]
       IJ = [19, 5, 46, 41, 37, 23, 17, 90, 15, 97]
       allocate(JJ(nnzJ))
-      !JJ = [24, 9, 6, 12, 57, 86, 79, 35, 24, 74]
       JJ = [25, 10, 7, 13, 58, 87, 80, 36, 25, 75]
 
       call suscr_begin(n_spins, n_spins, J, istat)
@@ -123,7 +115,6 @@ private
         1.0408126254645396 &
       ]
       allocate(IH(nnzH))
-      !IH = [0, 97, 20, 89, 54, 43, 35, 19, 27, 13]
       IH = [1, 98, 21, 90, 55, 44, 36, 20, 28, 14]
       allocate(JH(nnzH))
       JH(:) = 1
@@ -138,7 +129,6 @@ private
       IsingHamiltonian%H = H
 
       energy_initial = IsingHamiltonian%evaluate(annealer%state_curr)
-      !print *, energy_initial
 
       call annealer%optimize()
 
@@ -146,7 +136,6 @@ private
       if (.not. annealer%e_best < energy_initial) then
         call test_failed(error, "Blarg")
       end if
-
       call usds(J, istat)
       call usds(H, istat)
       istat = rsb_lib_exit(eo)
@@ -179,7 +168,6 @@ private
         incY=inc_J_sigma, &
         istat=istat &
       )
-
       J_sigma_sigma = dot_product(J_sigma, state)
 
       allocate(H_sigma(size(state)))
@@ -196,7 +184,6 @@ private
       )
 
       ising_hamiltonian = -1 * (J_sigma_sigma + sum(H_sigma))
-      print *, ising_hamiltonian
 
     end function ising_hamiltonian
 

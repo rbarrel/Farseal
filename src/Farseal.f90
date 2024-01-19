@@ -3,10 +3,14 @@ module Farseal
   implicit none
 
   private
-  public CoolingMethods, CoolingType, ObjectiveType, AnnealerType, &
-    DiscreteAnnealType
+  public CoolingMethods, DiscreteAnnealType, ObjectiveType
 
   real(kind=real32), parameter :: pi = 4.0_real32 * atan(1.0_real32)
+
+
+  !!!!!!!!!!!!!!!!!!!!!
+  !!! Cooling Types !!!
+  !!!!!!!!!!!!!!!!!!!!!
 
   type :: CoolingMethod_Values
     integer :: LinMult = 1
@@ -23,17 +27,19 @@ module Farseal
   type(CoolingMethod_Values), parameter :: CoolingMethods = CoolingMethod_Values()
 
   type :: CoolingType
-    integer :: method = CoolingMethods%LinMult
+    integer :: method = CoolingMethods%LinAdd
     real(kind=real32) :: tmax = 100
     real(kind=real32) :: tmin = 0
     real(kind=real32) :: alpha = 0.01
     integer(kind=int32) :: k = 1
     integer(kind=int32) :: n = 100
     real(kind=real32) :: temp = -1
-    procedure(cooling_subroutine), pointer :: cool => CoolingMethod_cool
+    logical :: mon_cool = .true.
+    !procedure(cooling_subroutine), pass(self), pointer :: cool => CoolingMethod_cool
     logical, private :: initialized = .false.
     contains
-      procedure :: init => CoolingMethod_init
+      procedure, pass(self) :: cool => CoolingMethod_cool
+      procedure, pass(self) :: init => CoolingMethod_init
   end type CoolingType
 
   interface
@@ -43,44 +49,59 @@ module Farseal
     end subroutine cooling_subroutine
   end interface
 
-  type :: AnnealerType
-    integer :: max_step = 100
-    integer :: total_steps = 0
-    real(kind=real32) :: alpha = 0.01_real32
-    real(kind=real32) :: t_max = 100.0_real32
-    real(kind=real32) :: t_min = 0.0_real32
-    real(kind=real32) :: e_best = 1.0e30_real32
-    integer :: cool_opt = CoolingMethods%LinAdd
-    logical :: mon_cool = .true.
-    logical :: prog_bar = .false.
-    real(kind=real32) :: resvar = 0.0_real32
-    ! @@@ TODO: Maybe use the CoolingType Here to Replace some of these? ^^^
-    contains
-      procedure, pass(self) :: optimize
-  end type AnnealerType
 
-  type, extends(AnnealerType) :: DiscreteAnnealType
-    real(kind=real32), pointer, dimension(:) :: state_curr
-    integer, allocatable, dimension(:) :: state_neigh, state_best, var_values
-    integer :: num_perturb = 0
-    contains
-      procedure, pass(self) :: get_neigh => get_neigh_disc
-  end type DiscreteAnnealType
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !!! Objective Function Types !!!
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  type, abstract :: ObjectiveType
-    contains
-      procedure(objective_interface), deferred, pass(self) :: evaluate
+  type :: ObjectiveType
+    ! @@@ TODO: This procedure is causing problems.
+    ! It cannot be instantiated ahead of time by the AnnealType
+    ! Because I need to extend it with attributes like J and H 
+    ! for the IsingHamiltonian. I need to find a way around this
+    ! issue.
+    procedure(objective_interface), pointer :: evaluate => Null()
   end type ObjectiveType
 
   interface
     function objective_interface(self, state) result(energy)
       use iso_fortran_env, only: real32
       import ObjectiveType
-      class(ObjectiveType), intent(inout) :: self
+      type(ObjectiveType), intent(inout) :: self
       real(kind=real32), dimension(:), intent(in) :: state
       real(kind=real32) :: energy
     end function objective_interface
   end interface
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!
+  !!! Annealing Types !!!
+  !!!!!!!!!!!!!!!!!!!!!!!
+
+  type, abstract :: AnnealerType
+    integer :: max_step = 100
+    integer :: total_steps = 0
+    type(CoolingType) :: cooler = CoolingType()
+    type(ObjectiveType) :: objective = ObjectiveType()
+    real(kind=real32) :: e_best = 1.0e30_real32
+    logical :: prog_bar = .false.
+    real(kind=real32) :: resvar = 0.0_real32
+    contains
+      procedure, pass(self) :: optimize
+  end type AnnealerType
+
+  type, extends(AnnealerType) :: DiscreteAnnealType
+    real(kind=real32), pointer, dimension(:) :: state_curr
+    integer, dimension(:), allocatable :: state_neigh, state_best, var_values
+    integer :: num_perturb = 0
+    contains
+      procedure, pass(self) :: get_neigh => get_neigh_disc
+  end type DiscreteAnnealType
+
+
+  !!!!!!!!!!!!!!!!!!
+  !!! Procedures !!!
+  !!!!!!!!!!!!!!!!!!
 
   contains
 
