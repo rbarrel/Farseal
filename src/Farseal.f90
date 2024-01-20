@@ -35,7 +35,6 @@ module Farseal
     integer(kind=int32) :: n = 100
     real(kind=real32) :: temp = -1
     logical :: mon_cool = .true.
-    !procedure(cooling_subroutine), pass(self), pointer :: cool => CoolingMethod_cool
     logical, private :: initialized = .false.
     contains
       procedure, pass(self) :: cool => CoolingMethod_cool
@@ -54,20 +53,16 @@ module Farseal
   !!! Objective Function Types !!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  type :: ObjectiveType
-    ! @@@ TODO: This procedure is causing problems.
-    ! It cannot be instantiated ahead of time by the AnnealType
-    ! Because I need to extend it with attributes like J and H 
-    ! for the IsingHamiltonian. I need to find a way around this
-    ! issue.
-    procedure(objective_interface), pointer :: evaluate => Null()
+  type, abstract :: ObjectiveType
+    contains
+      procedure(objective_interface), deferred, pass(self) :: energy
   end type ObjectiveType
 
   interface
     function objective_interface(self, state) result(energy)
       use iso_fortran_env, only: real32
       import ObjectiveType
-      type(ObjectiveType), intent(inout) :: self
+      class(ObjectiveType), intent(inout) :: self
       real(kind=real32), dimension(:), intent(in) :: state
       real(kind=real32) :: energy
     end function objective_interface
@@ -82,7 +77,6 @@ module Farseal
     integer :: max_step = 100
     integer :: total_steps = 0
     type(CoolingType) :: cooler = CoolingType()
-    type(ObjectiveType) :: objective = ObjectiveType()
     real(kind=real32) :: e_best = 1.0e30_real32
     logical :: prog_bar = .false.
     real(kind=real32) :: resvar = 0.0_real32
@@ -90,7 +84,7 @@ module Farseal
       procedure, pass(self) :: optimize
   end type AnnealerType
 
-  type, extends(AnnealerType) :: DiscreteAnnealType
+  type, abstract, extends(AnnealerType) :: DiscreteAnnealType
     real(kind=real32), pointer, dimension(:) :: state_curr
     integer, dimension(:), allocatable :: state_neigh, state_best, var_values
     integer :: num_perturb = 0

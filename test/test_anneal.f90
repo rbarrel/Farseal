@@ -7,12 +7,19 @@ module Anneal
     check, test_failed, skip_test
   use Farseal, only: DiscreteAnnealType, ObjectiveType, CoolingMethods
   implicit none
+
   private
   public :: collect_anneal_suite
 
   type, extends(ObjectiveType) :: IsingHamiltonianType
     integer :: J = -1, H = -1
+    contains
+      procedure :: energy => ising_hamiltonian
   end type IsingHamiltonianType
+
+  type, extends(DiscreteAnnealType) :: IsingModel
+    type(IsingHamiltonianType) :: objective = IsingHamiltonianType()
+  end type IsingModel
 
   contains
 
@@ -28,7 +35,7 @@ module Anneal
     ! Test with Ising Model
     subroutine test_discrete_anneal(error)
       type(error_type), allocatable, intent(out) :: error
-      type(DiscreteAnnealType), allocatable :: annealer
+      type(IsingModel), allocatable :: annealer
       type(IsingHamiltonianType), allocatable :: IsingHamiltonian
       integer :: n_spins, J, H, nnzJ, nnzH
       ! @@@ TODO: target was necessary for compilation to take place
@@ -60,11 +67,10 @@ module Anneal
 
       IsingHamiltonian = IsingHamiltonianType()
 
-      annealer = DiscreteAnnealType(state_curr=state)
+      annealer = IsingModel(state_curr=state)
       annealer%max_step = 100
       annealer%prog_bar = .true.
       annealer%resvar = 0.0
-      annealer%objective%evaluate => ising_hamiltonian
       annealer%var_values = [1, -1]
       annealer%num_perturb = 1
       allocate(annealer%state_curr(n_spins))
@@ -128,7 +134,7 @@ module Anneal
 
       IsingHamiltonian%H = H
 
-      energy_initial = IsingHamiltonian%evaluate(annealer%state_curr)
+      energy_initial = IsingHamiltonian%energy(annealer%state_curr)
 
       call annealer%optimize()
 
