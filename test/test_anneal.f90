@@ -39,7 +39,7 @@ module Anneal
       type(IsingHamiltonianObjective), allocatable :: IsingHamiltonian
       integer :: n_spins, J, H, nnzJ, nnzH
       ! @@@ TODO: target was necessary for compilation to take place
-      real(kind=real32), dimension(:), allocatable, target :: state
+      integer, dimension(:), allocatable, target :: state
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
       integer, dimension(:), allocatable :: IJ, JJ, IH, JH
@@ -148,8 +148,8 @@ module Anneal
 
     !> Ising Model Hamiltonian (with Magnetic Moment, mu = 1)
     function ising_hamiltonian(self, state)
-      real(kind=real32), dimension(:), intent(in) :: state
       class(IsingHamiltonianObjective), intent(inout) :: self
+      integer, dimension(:), intent(in) :: state
       real(kind=real32) :: ising_hamiltonian
 
       integer :: istat = 0
@@ -158,13 +158,14 @@ module Anneal
       real(kind=real32) :: J_sigma_sigma
       real(kind=real32), dimension(:), allocatable :: H_sigma, J_sigma
 
+      ! @@@ TODO: self%J DNE according to GDB?!
       allocate(J_sigma(size(state)))
       J_sigma(:) = 0.0_real32
       call usmv( &
         transA=blas_no_trans, &
         alpha=alpha, &
         A=self%J, &
-        x=state, &
+        x=real(state, kind=real32), &
         incX=incState, &
         y=J_sigma, &
         incY=inc_J_sigma, &
@@ -178,7 +179,7 @@ module Anneal
         transA=blas_trans, &
         alpha=alpha, &
         A=self%H, &
-        x=state, &
+        x=real(state, kind=real32), &
         incX=incState, &
         y=H_sigma, &
         incY=inc_H_sigma, &

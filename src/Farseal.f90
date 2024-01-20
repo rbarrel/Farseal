@@ -63,7 +63,7 @@ module Farseal
       use iso_fortran_env, only: real32
       import ObjectiveType
       class(ObjectiveType), intent(inout) :: self
-      real(kind=real32), dimension(:), intent(in) :: state
+      integer, dimension(:), intent(in) :: state
       real(kind=real32) :: energy
     end function objective_interface
   end interface
@@ -86,7 +86,7 @@ module Farseal
   end type AnnealerType
 
   type, abstract, extends(AnnealerType) :: DiscreteAnnealType
-    real(kind=real32), pointer, dimension(:) :: state_curr
+    integer, dimension(:), pointer :: state_curr
     integer, dimension(:), allocatable :: state_neigh, state_best, var_values
     integer :: num_perturb = 0
     contains
