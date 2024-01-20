@@ -11,14 +11,14 @@ module Anneal
   private
   public :: collect_anneal_suite
 
-  type, extends(ObjectiveType) :: IsingHamiltonianType
+  type, extends(ObjectiveType) :: IsingHamiltonianObjective
     integer :: J = -1, H = -1
     contains
       procedure :: energy => ising_hamiltonian
-  end type IsingHamiltonianType
+  end type IsingHamiltonianObjective
 
   type, extends(DiscreteAnnealType) :: IsingModel
-    type(IsingHamiltonianType) :: objective = IsingHamiltonianType()
+    type(IsingHamiltonianObjective) :: objective = IsingHamiltonianObjective()
   end type IsingModel
 
   contains
@@ -36,23 +36,18 @@ module Anneal
     subroutine test_discrete_anneal(error)
       type(error_type), allocatable, intent(out) :: error
       type(IsingModel), allocatable :: annealer
-      type(IsingHamiltonianType), allocatable :: IsingHamiltonian
+      type(IsingHamiltonianObjective), allocatable :: IsingHamiltonian
       integer :: n_spins, J, H, nnzJ, nnzH
       ! @@@ TODO: target was necessary for compilation to take place
       real(kind=real32), dimension(:), allocatable, target :: state
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
-      ! @@@ TODO: Enable for Verbose Logging
-      !integer(kind=rsb_idx_kind) :: res
-      !integer(kind=c_int), target :: ione = 1
       integer, dimension(:), allocatable :: IJ, JJ, IH, JH
       real(kind=real32), dimension(:), allocatable :: VJ, VH
       real(kind=real32) :: energy_initial
 
       istat = rsb_lib_init(eo)
       if (istat .ne. 0) stop
-      ! @@@ TODO: Enable for Verbose Logging
-      !res = rsb_lib_set_opt(rsb_io_want_verbose_tuning,c_loc(ione))
 
       n_spins = 100
       allocate(state(n_spins))
@@ -64,8 +59,6 @@ module Anneal
         1, -1, -1, -1, 1, 1, -1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, 1, &
         -1, -1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1 &
       ]
-
-      IsingHamiltonian = IsingHamiltonianType()
 
       annealer = IsingModel(state_curr=state)
       annealer%max_step = 100
@@ -103,7 +96,7 @@ module Anneal
       call suscr_insert_entries(J, nnzJ, VJ, IJ, JJ, istat)
       call uscr_end(J, istat)
 
-      IsingHamiltonian%J = J
+      annealer%objective%J = J
 
       ! H vector
       nnzH = 10
@@ -132,11 +125,14 @@ module Anneal
       call suscr_insert_entries(H, nnzH, VH, IH, JH, istat)
       call uscr_end(H, istat)
 
-      IsingHamiltonian%H = H
+      annealer%objective%H = H
 
       energy_initial = IsingHamiltonian%energy(annealer%state_curr)
+      print *, energy_initial
 
-      call annealer%optimize()
+      ! @@@ TODO: Enable the Optimize Method
+      ! Currently its null() or something and this line segfaults.
+      !call annealer%optimize()
 
       ! TODO: Change Condition to Match the Best Hypothetical State Given IC
       if (.not. annealer%e_best < energy_initial) then
@@ -152,8 +148,8 @@ module Anneal
 
     !> Ising Model Hamiltonian (with Magnetic Moment, mu = 1)
     function ising_hamiltonian(self, state)
-      class(IsingHamiltonianType), intent(inout) :: self
       real(kind=real32), dimension(:), intent(in) :: state
+      class(IsingHamiltonianObjective), intent(inout) :: self
       real(kind=real32) :: ising_hamiltonian
 
       integer :: istat = 0

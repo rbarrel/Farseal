@@ -80,6 +80,7 @@ module Farseal
     real(kind=real32) :: e_best = 1.0e30_real32
     logical :: prog_bar = .false.
     real(kind=real32) :: resvar = 0.0_real32
+    ! @@@ TODO: Create a flag for verbose logging in here
     contains
       procedure, pass(self) :: optimize
   end type AnnealerType
