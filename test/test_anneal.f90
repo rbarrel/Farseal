@@ -69,6 +69,8 @@ module Anneal
       allocate(annealer%state_curr(n_spins))
       annealer%state_curr = state
 
+      IsingHamiltonian = IsingHamiltonianObjective()
+
       ! J matrix
       nnzJ = 10
       allocate(VJ(nnzJ))
@@ -96,7 +98,7 @@ module Anneal
       call suscr_insert_entries(J, nnzJ, VJ, IJ, JJ, istat)
       call uscr_end(J, istat)
 
-      annealer%objective%J = J
+      IsingHamiltonian%J = J
 
       ! H vector
       nnzH = 10
@@ -125,10 +127,10 @@ module Anneal
       call suscr_insert_entries(H, nnzH, VH, IH, JH, istat)
       call uscr_end(H, istat)
 
-      annealer%objective%H = H
+      IsingHamiltonian%H = H
 
+      annealer%objective = IsingHamiltonian
       energy_initial = IsingHamiltonian%energy(annealer%state_curr)
-      print *, energy_initial
 
       ! @@@ TODO: Enable the Optimize Method
       ! Currently its null() or something and this line segfaults.
