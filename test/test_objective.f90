@@ -11,7 +11,7 @@ module Objective
   type, extends(ObjectiveType) :: TestObjectiveType
     real(kind=real32) :: expected_output = 10_real32
     contains
-      procedure :: evaluate
+      procedure :: energy
   end type TestObjectiveType
 
   contains
@@ -28,7 +28,7 @@ module Objective
     subroutine test_objective(error)
       type(error_type), allocatable, intent(out) :: error
       type(TestObjectiveType), allocatable :: objective
-      real(kind=real32), dimension(:), allocatable :: state
+      integer, dimension(:), allocatable :: state
       real(kind=real32) :: expected_energy, actual_energy
 
       expected_energy = 10_real32
@@ -36,20 +36,20 @@ module Objective
       state(:) = 0.0_real32
 
       objective = TestObjectiveType()
-      actual_energy = objective%evaluate(state)
+      actual_energy = objective%energy(state)
 
       call check(error, expected_energy, actual_energy)
       if (allocated(error)) return
 
     end subroutine test_objective
 
-    function evaluate(self, state) result(energy)
+    function energy(self, state)
       class(TestObjectiveType), intent(inout) :: self
-      real(kind=real32), dimension(:), intent(in) :: state
+      integer, dimension(:), intent(in) :: state
       real(kind=real32) :: energy
 
       energy = self%expected_output
 
-    end function evaluate
+    end function energy
 
 end module Objective

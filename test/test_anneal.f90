@@ -160,7 +160,6 @@ module Anneal
       real(kind=real32) :: J_sigma_sigma
       real(kind=real32), dimension(:), allocatable :: H_sigma, J_sigma
 
-      ! @@@ TODO: self%J DNE according to GDB?!
       allocate(J_sigma(size(state)))
       J_sigma(:) = 0.0_real32
       call usmv( &

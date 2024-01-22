@@ -3,7 +3,7 @@ module Farseal
   implicit none
 
   private
-  public CoolingMethods, DiscreteAnnealType, ObjectiveType
+  public CoolingType, CoolingMethods, DiscreteAnnealType, ObjectiveType, AnnealerType
 
   real(kind=real32), parameter :: pi = 4.0_real32 * atan(1.0_real32)
 
@@ -36,8 +36,8 @@ module Farseal
     real(kind=real32) :: temp = -1
     logical :: mon_cool = .true.
     logical, private :: initialized = .false.
+    procedure(cooling_subroutine), pointer :: cool => null()
     contains
-      procedure, pass(self) :: cool => CoolingMethod_cool
       procedure, pass(self) :: init => CoolingMethod_init
   end type CoolingType
 
@@ -105,6 +105,7 @@ module Farseal
 
       self%temp = self%tmax
       self%initialized = .true.
+      self%cool => CoolingMethod_cool
 
     end subroutine CoolingMethod_init
 

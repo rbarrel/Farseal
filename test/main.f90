@@ -2,8 +2,8 @@ program tester
   use, intrinsic :: iso_fortran_env, only : error_unit
   use testdrive, only : run_testsuite, new_testsuite, testsuite_type, &
     & select_suite, run_selected, get_argument
-  !use cooling, only: collect_cooling_suite
-  !use objective, only: collect_objective_suite
+  use cooling, only: collect_cooling_suite
+  use objective, only: collect_objective_suite
   use anneal, only: collect_anneal_suite
   implicit none
   integer :: stat, is
@@ -14,8 +14,8 @@ program tester
   stat = 0
 
   testsuites = [ &
-    !new_testsuite("cooling", collect_cooling_suite), &
-    !new_testsuite("objective", collect_objective_suite), &
+    new_testsuite("cooling", collect_cooling_suite), &
+    new_testsuite("objective", collect_objective_suite), &
     new_testsuite("anneal", collect_anneal_suite) &
     ]
 
