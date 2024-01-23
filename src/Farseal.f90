@@ -74,6 +74,7 @@ module Farseal
   !!!!!!!!!!!!!!!!!!!!!!!
 
   type, abstract :: AnnealerType
+    integer :: size_states = 0
     integer :: max_step = 100
     integer :: total_steps = 0
     type(CoolingType) :: cooler = CoolingType()
@@ -93,6 +94,8 @@ module Farseal
       procedure, pass(self) :: get_neigh => get_neigh_disc
   end type DiscreteAnnealType
 
+  ! @@@ TODO: ContinuousAnnealType
+  ! @@@ TODO: CombinatorialAnnealType
 
   !!!!!!!!!!!!!!!!!!
   !!! Procedures !!!
@@ -103,18 +106,18 @@ module Farseal
     subroutine CoolingMethod_init(self)
       class(CoolingType), intent(out) :: self
 
-      self%temp = self%tmax
-      self%initialized = .true.
-      self%cool => CoolingMethod_cool
+      if (.not. self%initialized) then
+        self%initialized = .true.
+        self%temp = self%tmax
+        self%cool => CoolingMethod_cool
+      end if
 
     end subroutine CoolingMethod_init
 
     subroutine CoolingMethod_cool(self)
       class(CoolingType), intent(inout) :: self
 
-      if (.not. self%initialized) then
-        call self%init()
-      end if
+      call self%init()
 
       self%k = self%k + 1
 
@@ -151,81 +154,81 @@ module Farseal
 
     subroutine optimize(self)
       class(AnnealerType),intent(inout) :: self
-!      integer :: step
-!      real(kind=real32) :: e_neigh, temp_r, e_curr, t_curr
-!
-!      e_neigh = 1000_real32
-!      e_curr = 1000_real32
-!
-!      ! @@@ TODO: Set Cooling
-!
-!      ! allocate the neighbor state variables and set the cooling, also set initial energy
-!      self%size_states=size(self%state_curr)
-!      if (.not. allocated(self%state_neigh)) then
-!        allocate(self%state_neigh(self%size_states))
-!      end if
-!      if (.not. allocated(self%state_best)) then
-!        allocate(self%state_best(self%size_states))
-!      end if
-!      ! if the var_values have not been given, then traverse the initial state and pick out each
-!      ! unique value and assume those are the possible values
-!      if (.not. allocated(self%var_values)) then
-!        CALL init_var_values(self)
-!      end if
-!      self%state_neigh=self%state_curr
-!      self%state_best=self%state_curr
-!      !set energy to current energy
-!      e_curr=self%energy(self%state_curr)
-!      self%e_best=e_curr
-!
-!      t_curr=self%t_max
-!      step=0
-!      self%total_steps=0
-!      if (self%prog_bar) write(*, '(A)', advance='NO') 'PROGRESS:'
-!      ! actual simulated annealing happens here
-!      do while(step .LT. self%max_step .AND. t_curr .gt. self%t_min)
-!        self%total_steps=self%total_steps+1
-!        ! get a new neighbor and compute energy
-!        self%state_neigh=self%get_neigh(self%state_curr)
-!        e_neigh=self%energy(self%state_neigh)
-!        ! check and see if we accept the new temperature (lower temps always accepted)
-!        CALL random_number(temp_r)
-!        if (temp_r .LE. accept_prob(e_curr,e_neigh,t_curr)) then
-!          ! if we accept then it always counts as a new step
-!          step=step+1
-!          if (self%prog_bar .AND. mod(step,nint(self%max_step/91_real32)) .eq. 0) &
-!            write(*, '(A)', advance='NO') '*'
-!          self%state_curr=self%state_neigh
-!          e_curr=e_neigh
-!        ELSE
-!          ! otherwise, it has a 1% chance to count as a new step to finish the problem
-!          ! especially important for combinatorials
-!          CALL random_number(temp_r)
-!          if (temp_r .LE. 0.01D0) then
-!            step=step+1
-!            if (self%prog_bar .AND. mod(step,nint(self%max_step/91_real32)) .eq. 0) &
-!              write(*, '(A)', advance='NO') '*'
-!          end if
-!        end if
-!        ! cool the temperature
-!        t_curr=self%cool(self%t_min,self%t_max,self%alpha,step,self%max_step)
-!        ! if it is the best energy, it's our new best value
-!        if (e_curr .LT. self%e_best) then
-!          self%e_best=e_curr
-!          self%state_best=self%state_neigh
-!        end if
-!        if (.not. self%mon_cool)t_curr=t_curr*(1.0_real32+(e_curr-self%e_best)/e_curr)
-!        ! rewind to best value
-!        if (abs(t_curr) .LE. self%resvar) then
-!          self%resvar=self%resvar/2.0_real32
-!          e_curr=self%e_best
-!          self%state_curr=self%state_best
-!        end if
-!      end do
-!      if (self%prog_bar) write(*, '(A)') '*'
-!
-!      ! set to the best state we ended up finding.
-!      self%state_curr=self%state_best
+      integer :: step
+      real(kind=real32) :: e_neigh, temp_r, e_curr, t_curr
+
+      e_neigh = 1000_real32
+      e_curr = 1000_real32
+
+      call self%cooler%init()
+
+      ! allocate the neighbor state variables and set the cooling, also set initial energy
+      self%size_states=size(self%state_curr)
+      if (.not. allocated(self%state_neigh)) then
+        allocate(self%state_neigh(self%size_states))
+      end if
+      if (.not. allocated(self%state_best)) then
+        allocate(self%state_best(self%size_states))
+      end if
+      ! if the var_values have not been given, then traverse the initial state and pick out each
+      ! unique value and assume those are the possible values
+      if (.not. allocated(self%var_values)) then
+        call init_var_values(self)
+      end if
+      self%state_neigh=self%state_curr
+      self%state_best=self%state_curr
+      !set energy to current energy
+      e_curr=self%energy(self%state_curr)
+      self%e_best=e_curr
+
+      t_curr=self%t_max
+      step=0
+      self%total_steps=0
+      if (self%prog_bar) write(*, '(A)', advance='NO') 'PROGRESS:'
+      ! actual simulated annealing happens here
+      do while(step .LT. self%max_step .AND. t_curr .gt. self%t_min)
+        self%total_steps=self%total_steps+1
+        ! get a new neighbor and compute energy
+        self%state_neigh=self%get_neigh(self%state_curr)
+        e_neigh=self%energy(self%state_neigh)
+        ! check and see if we accept the new temperature (lower temps always accepted)
+        call random_number(temp_r)
+        if (temp_r .LE. accept_prob(e_curr,e_neigh,t_curr)) then
+          ! if we accept then it always counts as a new step
+          step=step+1
+          if (self%prog_bar .AND. mod(step,nint(self%max_step/91_real32)) .eq. 0) &
+            write(*, '(A)', advance='NO') '*'
+          self%state_curr=self%state_neigh
+          e_curr=e_neigh
+        ELSE
+          ! otherwise, it has a 1% chance to count as a new step to finish the problem
+          ! especially important for combinatorials
+          call random_number(temp_r)
+          if (temp_r .LE. 0.01D0) then
+            step=step+1
+            if (self%prog_bar .AND. mod(step,nint(self%max_step/91_real32)) .eq. 0) &
+              write(*, '(A)', advance='NO') '*'
+          end if
+        end if
+        ! cool the temperature
+        t_curr=self%cool(self%t_min,self%t_max,self%alpha,step,self%max_step)
+        ! if it is the best energy, it's our new best value
+        if (e_curr .LT. self%e_best) then
+          self%e_best=e_curr
+          self%state_best=self%state_neigh
+        end if
+        if (.not. self%mon_cool)t_curr=t_curr*(1.0_real32+(e_curr-self%e_best)/e_curr)
+        ! rewind to best value
+        if (abs(t_curr) .LE. self%resvar) then
+          self%resvar=self%resvar/2.0_real32
+          e_curr=self%e_best
+          self%state_curr=self%state_best
+        end if
+      end do
+      if (self%prog_bar) write(*, '(A)') '*'
+
+      ! set to the best state we ended up finding.
+      self%state_curr=self%state_best
     end subroutine optimize
 
     function get_neigh_disc(self, s_curr)

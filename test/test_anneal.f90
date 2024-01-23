@@ -134,7 +134,7 @@ module Anneal
 
       ! @@@ TODO: Enable the Optimize Method
       ! Currently its null() or something and this line segfaults.
-      !call annealer%optimize()
+      call annealer%optimize()
 
       ! TODO: Change Condition to Match the Best Hypothetical State Given IC
       if (.not. annealer%e_best < energy_initial) then
