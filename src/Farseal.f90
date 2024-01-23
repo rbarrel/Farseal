@@ -298,93 +298,107 @@ module Farseal
       integer, dimension(:), intent(in) :: s_curr
       integer, dimension(size(s_curr)) :: get_neigh_disc
 
-!      real(kind=real32) :: temp_r
-!      integer :: i, j, val, num_perturb, temp_i
-!      real(kind=real32), dimension(size(self%var_values)) :: rand
-!      integer, dimension(:), allocatable :: perturb_locs
-!
-!      ! this line is literally just to ensure that it doesn't complain about not using the variables
-!      if (.false.) temp_r = self%e_best
-!
-!      ! perturb at least one parameter
-!      num_perturb = max(1, self%num_perturb)
-!
-!      ! find which locations we are perturbing
-!      allocate(perturb_locs(num_perturb))
-!      perturb_locs = 0
-!      i = 1
-!      do while(i .le. num_perturb)
-!        ! get a random index for the parameters
-!        call random_number(temp_r)
-!        temp_i = 1 + floor(temp_r * size(s_curr))
-!        j = i
-!        do j = 1, i - 1
-!          if (perturb_locs(j) .eq. temp_i) exit
-!        end do
-!        ! if we exited early then we already found the index so we don't use that index and repeat
-!        if (j .EQ. i) then
-!          perturb_locs(j)=temp_i
-!          i=i+1
-!        end if
-!      end do
-!
-!      ! now actually perturb the system at each location
+      real(kind=real32) :: temp_r
+      integer :: i, j, val, num_perturb, temp_i
+      real(kind=real32), dimension(size(self%var_values)) :: rand
+      integer, dimension(:), allocatable :: perturb_locs
+
+      ! perturb at least one parameter
+      num_perturb = max(1, self%num_perturb)
+
+      ! find which locations we are perturbing
+      allocate(perturb_locs(num_perturb))
+      perturb_locs = 0
+      i = 1
+      do while(i <= num_perturb)
+        ! get a random index for the parameters
+        call random_number(temp_r)
+        temp_i = 1 + floor(temp_r * size(s_curr))
+        j = i
+        do j = 1, i - 1
+          if (perturb_locs(j) .eq. temp_i) exit
+        end do
+
+        ! if we exited early then we already found the index so we don't use that index and repeat
+        if (j == i) then
+          perturb_locs(j) = temp_i
+          i = i + 1
+        end if
+
+      end do
+
+      ! now actually perturb the system at each location
       get_neigh_disc = s_curr
-!      do i=1,num_perturb
-!        j=perturb_locs(i)
-!        ! pick new discrete value
-!        call random_number(rand)
-!        val=self%var_values(maxloc(rand,dim=1))
-!        ! make sure that a new value is chosen
-!        if (val .EQ. s_curr(j)) then
-!          val=self%var_values(minloc(rand,dim=1))
-!        end if
-!        ! perturb the state
-!        get_neigh_disc(j)=val
-!      end do
-!
+      do i = 1, num_perturb
+        j = perturb_locs(i)
+
+        ! pick new discrete value
+        call random_number(rand)
+        val = self%var_values(maxloc(rand, dim=1))
+
+        ! make sure that a new value is chosen
+        if (val == s_curr(j)) then
+          val = self%var_values(minloc(rand, dim=1))
+        end if
+
+        ! perturb the state
+        get_neigh_disc(j)=val
+
+      end do
+
     end function get_neigh_disc
 
-  function accept_prob(e_current,e_neigh,t_current)
-    real(kind=real32),intent(in) :: e_current,e_neigh,t_current
+  function accept_prob(e_current, e_neigh, t_current)
+    real(kind=real32),intent(in) :: e_current, e_neigh, t_current
     real(kind=real32) :: accept_prob
     real(kind=real32) :: delta_e
 
-    delta_e=e_neigh-e_current
-    if(-delta_e/t_current .le. -700.0_real32)then
-      accept_prob=0.0_real32
-    elseif(-delta_e/t_current .GE. 700.0_real32)then
-      accept_prob=10.0_real32
+    delta_e = e_neigh - e_current
+
+    if (-delta_e/t_current <= -700.0_real32) then
+      accept_prob = 0.0_real32
+    else if (-delta_e/t_current >= 700.0_real32) then
+      accept_prob = 10.0_real32
     else
-      accept_prob=exp(-delta_e/t_current)
-    endif
-    if(delta_e .LE. 0.0_real32)accept_prob=10.0_real32
-    if(ISNAN(accept_prob))accept_prob=0.0_real32
+      accept_prob = exp(-delta_e/t_current)
+    end if
+
+    if (delta_e <= 0.0_real32) then
+      accept_prob = 10.0_real32
+    end if
+
+    if (ISNAN(accept_prob)) then
+      accept_prob = 0.0_real32
+    end if
+
   end function accept_prob
 
   subroutine init_var_values(self)
-    class(DiscreteAnnealType),intent(inout) :: self
+    class(DiscreteAnnealType), intent(inout) :: self
     integer :: var_vals(self%size_states)
-    integer :: i,num_unique
+    integer :: i, num_unique
 
-    if(any(var_vals==-999999999))stop 'if you are going to use -999999999 as a value, specify the &
+    if (any(var_vals == -999999999)) stop 'if you are going to use -999999999 as a value, specify the &
         &var_values!'
-    !traverse the initial state to see what the unique values are. uses -999999999
-    !to indicate values not yet found
-    var_vals=-999999999
-    num_unique=0
-    do i=1,self%size_states
-      !check to see if we've already recorded this value, if not then add it to the list!
-      if(.not. any(var_vals==self%state_curr(i)))then
-        num_unique=num_unique+1
-        var_vals(num_unique)=self%state_curr(i)
-      endif
-    enddo
-    !num_unique is the number of unique values
+
+    ! Traverse the initial state to see what the unique values are
+    ! -999999999 indicates values not yet found
+    var_vals = -999999999
+    num_unique = 0
+    do i = 1, self%size_states
+      ! check to see if we've already recorded this value, if not then add it to the list!
+      if (.not. any(var_vals==self%state_curr(i))) then
+        num_unique = num_unique + 1
+        var_vals(num_unique) = self%state_curr(i)
+      end if
+    end do
+
+    ! num_unique is the number of unique values
     allocate(self%var_values(num_unique))
-    do i=1,num_unique
-      self%var_values(i)=var_vals(i)
-    enddo
-  endsubroutine
+    do i = 1, num_unique
+      self%var_values(i) = var_vals(i)
+    end do
+
+  end subroutine
 
 end module Farseal
