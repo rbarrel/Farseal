@@ -5,21 +5,11 @@ module Anneal
   use iso_fortran_env, only: int32, real32, real64
   use testdrive, only: new_unittest, unittest_type, error_type, &
     check, test_failed, skip_test
-  use Farseal, only: ObjectiveType, DiscreteAnnealType, CoolingMethods
+  use Farseal, only: CoolingMethods, ObjectiveType, DiscreteAnnealType
   implicit none
 
   private
   public :: collect_anneal_suite
-
-!  type, extends(ObjectiveType) :: IsingHamiltonianObjective
-!    integer :: J = -1, H = -1
-!    contains
-!      procedure :: energy => ising_hamiltonian
-!  end type IsingHamiltonianObjective
-!
-!  type, extends(DiscreteAnnealType) :: IsingModel
-!    type(IsingHamiltonianObjective) :: objective = IsingHamiltonianObjective()
-!  end type IsingModel
 
   contains
 
@@ -36,7 +26,6 @@ module Anneal
     subroutine test_discrete_anneal(error)
       type(error_type), allocatable, intent(out) :: error
       type(DiscreteAnnealType), allocatable :: annealer
-      !type(IsingHamiltonianObjective), allocatable :: IsingHamiltonian
       integer :: n_spins, J, H, nnzJ, nnzH
       ! @@@ TODO: target was necessary for compilation to take place
       integer, dimension(:), allocatable, target :: state
@@ -60,7 +49,6 @@ module Anneal
         -1, -1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1 &
       ]
 
-      !annealer = IsingModel(state_curr=state)
       annealer = DiscreteAnnealType(state_curr=state)
       annealer%max_step = 100
       annealer%prog_bar = .true.
@@ -69,8 +57,6 @@ module Anneal
       annealer%num_perturb = 1
       allocate(annealer%state_curr(n_spins))
       annealer%state_curr = state
-
-      !IsingHamiltonian = IsingHamiltonianObjective()
 
       ! J matrix
       nnzJ = 10
@@ -100,7 +86,6 @@ module Anneal
       call uscr_end(J, istat)
 
       annealer%objective%J = J
-      !IsingHamiltonian%J = J
 
       ! H vector
       nnzH = 10
@@ -130,19 +115,14 @@ module Anneal
       call uscr_end(H, istat)
 
       annealer%objective%H = H
-      !IsingHamiltonian%H = H
 
-      !annealer%objective = IsingHamiltonian
-      !energy_initial = IsingHamiltonian%energy(annealer%state_curr)
       annealer%objective%energy => ising_hamiltonian
       energy_initial = annealer%objective%energy(annealer%state_curr)
 
-      ! @@@ TODO: Enable the Optimize Method
-      ! Currently its null() or something and this line segfaults.
       call annealer%optimize()
 
       ! TODO: Change Condition to Match the Best Hypothetical State Given IC
-      if (.not. annealer%e_best < energy_initial) then
+      if (.not. all(annealer%state_best == [1])) then
         call test_failed(error, "Blarg")
       end if
       call usds(J, istat)

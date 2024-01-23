@@ -6,7 +6,7 @@ module Farseal
   public CoolingType, CoolingMethods, DiscreteAnnealType, ObjectiveType, AnnealerType
 
   real(kind=real32), parameter :: pi = 4.0_real32 * atan(1.0_real32)
-
+  real(kind=real32), parameter :: prog_len = 91.0_real32
 
   !!!!!!!!!!!!!!!!!!!!!
   !!! Cooling Types !!!
@@ -28,8 +28,8 @@ module Farseal
 
   type :: CoolingType
     integer :: method = CoolingMethods%LinAdd
-    real(kind=real32) :: tmax = 100
-    real(kind=real32) :: tmin = 0
+    real(kind=real32) :: t_max = 100
+    real(kind=real32) :: t_min = 0
     real(kind=real32) :: alpha = 0.01
     integer(kind=int32) :: k = 1
     integer(kind=int32) :: n = 100
@@ -134,7 +134,7 @@ module Farseal
 
       if (.not. self%initialized) then
         self%initialized = .true.
-        self%temp = self%tmax
+        self%temp = self%t_max
         self%cool => CoolingMethod_cool
       end if
 
@@ -149,28 +149,28 @@ module Farseal
 
       select case(self%method)
       case (1) ! LinMult
-        self%temp = self%tmax / &
+        self%temp = self%t_max / &
           (1.0_real32 + self%alpha * self%k)
       case (2) ! ExpMult
-        self%temp = self%tmax * self%alpha ** self%k
+        self%temp = self%t_max * self%alpha ** self%k
       case (3) ! LogMult
-        self%temp = self%tmax / &
+        self%temp = self%t_max / &
           (1.0_real32 + self%alpha * log10(self%k + 1.0_real32))
       case (4) ! QuadMult
-        self%temp = self%tmax / &
+        self%temp = self%t_max / &
           (1.0_real32 + self%alpha * (self%k * 1.0_real32) ** 2)
       case (5) ! LinAdd
-        self%temp = self%tmin + (self%tmax - self%tmin) * &
+        self%temp = self%t_min + (self%t_max - self%t_min) * &
           (self%n * 1.0_real32 - self%k) / (self%n * 1.0_real32)
       case (6) ! QuadAdd
-        self%temp = self%tmin + (self%tmax - self%tmin) * &
+        self%temp = self%t_min + (self%t_max - self%t_min) * &
           ((self%n * 1.0_real32 - self%k) / (self%n * 1.0_real32)) ** 2
       case (7) ! ExpAdd
-        self%temp = self%tmin + (self%tmax - self%tmin) / &
-          (1.0_real32 + exp(2.0_real32 * log(self%tmax - self%tmin) * &
+        self%temp = self%t_min + (self%t_max - self%t_min) / &
+          (1.0_real32 + exp(2.0_real32 * log(self%t_max - self%t_min) * &
           (self%k - 0.5_real32 * self%n) / (self%n * 1.0_real32)))
       case (8) ! TrigAdd
-        self%temp = self%tmin + 0.5_real32 * (self%tmax - self%tmin) &
+        self%temp = self%t_min + 0.5_real32 * (self%t_max - self%t_min) &
           * (1.0_real32 + cos(self%k * pi / (self%n * 1.0_real32)))
       case (9) ! Custom
         stop 'The user MUST select a valid cooling option or give a custom cooling function'
@@ -190,75 +190,107 @@ module Farseal
 
       select type(self)
         type is(DiscreteAnnealType)
-          ! allocate the neighbor state variables and set the cooling, also set initial energy
+
           self%size_states=size(self%state_curr)
+
           if (.not. allocated(self%state_neigh)) then
             allocate(self%state_neigh(self%size_states))
           end if
+
           if (.not. allocated(self%state_best)) then
             allocate(self%state_best(self%size_states))
           end if
-          ! if the var_values have not been given, then traverse the initial state and pick out each
-          ! unique value and assume those are the possible values
+
           if (.not. allocated(self%var_values)) then
             call init_var_values(self)
           end if
-          self%state_neigh=self%state_curr
-          self%state_best=self%state_curr
-          !set energy to current energy
-          e_curr=self%objective%energy(self%state_curr)
+
+          self%state_neigh = self%state_curr
+          self%state_best = self%state_curr
+
+          e_curr = self%objective%energy(self%state_curr)
+          self%e_best = e_curr
+
+      end select
+
+      t_curr = self%cooler%t_max
+      step = 0
+      self%total_steps = 0
+
+      if (self%prog_bar) write(*, '(A)', advance='NO') 'PROGRESS:'
+
+      ! Start Annealing
+      do while(step < self%max_step .AND. t_curr > self%cooler%t_min)
+        self%total_steps = self%total_steps + 1
+
+        select type(self)
+          type is(DiscreteAnnealType)
+            self%state_neigh = self%get_neigh(self%state_curr)
+            e_neigh = self%objective%energy(self%state_neigh)
+        end select
+
+        ! check and see if we accept the new temperature (lower temps always accepted)
+        call random_number(temp_r)
+        if (temp_r <= accept_prob(e_curr, e_neigh, t_curr)) then
+          step = step + 1
+
+          if (self%prog_bar .and. mod(step, nint(self%max_step/prog_len)) == 0) &
+            write(*, '(A)', advance='NO') '*'
+
+          select type(self)
+            type is(DiscreteAnnealType)
+              self%state_curr = self%state_neigh
+          end select
+
+          e_curr = e_neigh
+
+        else
+          ! 1% chance to accept a higher temp (critical for combinatorials)
+          call random_number(temp_r)
+          if (temp_r <= 0.01_real32) then
+            step = step + 1
+
+            if (self%prog_bar .and. mod(step, nint(self%max_step/prog_len)) == 0) &
+              write(*, '(A)', advance='NO') '*'
+          end if
+
+        end if
+
+        call self%cooler%cool()
+        t_curr = self%cooler%temp
+
+        if (e_curr < self%e_best) then
           self%e_best=e_curr
 
-          t_curr=self%cooler%tmax
-          step=0
-          self%total_steps=0
-          if (self%prog_bar) write(*, '(A)', advance='NO') 'PROGRESS:'
-          ! actual simulated annealing happens here
-          do while(step .LT. self%max_step .AND. t_curr .gt. self%cooler%tmin)
-            self%total_steps=self%total_steps+1
-            ! get a new neighbor and compute energy
-            self%state_neigh=self%get_neigh(self%state_curr)
-            e_neigh=self%objective%energy(self%state_neigh)
-            ! check and see if we accept the new temperature (lower temps always accepted)
-            call random_number(temp_r)
-            if (temp_r .LE. accept_prob(e_curr,e_neigh,t_curr)) then
-              ! if we accept then it always counts as a new step
-              step=step+1
-              if (self%prog_bar .AND. mod(step,nint(self%max_step/91_real32)) .eq. 0) &
-                write(*, '(A)', advance='NO') '*'
-              self%state_curr=self%state_neigh
-              e_curr=e_neigh
-            ELSE
-              ! otherwise, it has a 1% chance to count as a new step to finish the problem
-              ! especially important for combinatorials
-              call random_number(temp_r)
-              if (temp_r .LE. 0.01D0) then
-                step=step+1
-                if (self%prog_bar .AND. mod(step,nint(self%max_step/91_real32)) .eq. 0) &
-                  write(*, '(A)', advance='NO') '*'
-              end if
-            end if
-            ! cool the temperature
-            call self%cooler%cool()
-            t_curr = self%cooler%temp
-            ! if it is the best energy, it's our new best value
-            if (e_curr .LT. self%e_best) then
-              self%e_best=e_curr
+          select type(self)
+            type is(DiscreteAnnealType)
               self%state_best=self%state_neigh
-            end if
-            if (.not. self%cooler%mon_cool)t_curr=t_curr*(1.0_real32+(e_curr-self%e_best)/e_curr)
-            ! rewind to best value
-            if (abs(t_curr) .LE. self%resvar) then
-              self%resvar=self%resvar/2.0_real32
+          end select
+        end if
+
+        if (.not. self%cooler%mon_cool) then
+          t_curr=t_curr*(1.0_real32+(e_curr-self%e_best)/e_curr)
+        end if
+
+        if (abs(t_curr) .LE. self%resvar) then
+          self%resvar=self%resvar/2.0_real32
+
+          select type(self)
+            type is(DiscreteAnnealType)
               e_curr=self%e_best
               self%state_curr=self%state_best
-            end if
-          end do
-          if (self%prog_bar) write(*, '(A)') '*'
+          end select
+        end if
 
-          ! set to the best state we ended up finding.
+      end do
+
+      if (self%prog_bar) write(*, '(A)') '*'
+
+      select type(self)
+        type is(DiscreteAnnealType)
           self%state_curr=self%state_best
       end select
+
     end subroutine optimize
 
     function get_neigh_disc(self, s_curr)
