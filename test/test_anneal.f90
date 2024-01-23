@@ -5,21 +5,21 @@ module Anneal
   use iso_fortran_env, only: int32, real32, real64
   use testdrive, only: new_unittest, unittest_type, error_type, &
     check, test_failed, skip_test
-  use Farseal, only: DiscreteAnnealType, ObjectiveType, CoolingMethods
+  use Farseal, only: ObjectiveType, DiscreteAnnealType, CoolingMethods
   implicit none
 
   private
   public :: collect_anneal_suite
 
-  type, extends(ObjectiveType) :: IsingHamiltonianObjective
-    integer :: J = -1, H = -1
-    contains
-      procedure :: energy => ising_hamiltonian
-  end type IsingHamiltonianObjective
-
-  type, extends(DiscreteAnnealType) :: IsingModel
-    type(IsingHamiltonianObjective) :: objective = IsingHamiltonianObjective()
-  end type IsingModel
+!  type, extends(ObjectiveType) :: IsingHamiltonianObjective
+!    integer :: J = -1, H = -1
+!    contains
+!      procedure :: energy => ising_hamiltonian
+!  end type IsingHamiltonianObjective
+!
+!  type, extends(DiscreteAnnealType) :: IsingModel
+!    type(IsingHamiltonianObjective) :: objective = IsingHamiltonianObjective()
+!  end type IsingModel
 
   contains
 
@@ -35,8 +35,8 @@ module Anneal
     ! Test with Ising Model
     subroutine test_discrete_anneal(error)
       type(error_type), allocatable, intent(out) :: error
-      type(IsingModel), allocatable :: annealer
-      type(IsingHamiltonianObjective), allocatable :: IsingHamiltonian
+      type(DiscreteAnnealType), allocatable :: annealer
+      !type(IsingHamiltonianObjective), allocatable :: IsingHamiltonian
       integer :: n_spins, J, H, nnzJ, nnzH
       ! @@@ TODO: target was necessary for compilation to take place
       integer, dimension(:), allocatable, target :: state
@@ -60,7 +60,8 @@ module Anneal
         -1, -1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1 &
       ]
 
-      annealer = IsingModel(state_curr=state)
+      !annealer = IsingModel(state_curr=state)
+      annealer = DiscreteAnnealType(state_curr=state)
       annealer%max_step = 100
       annealer%prog_bar = .true.
       annealer%resvar = 0.0
@@ -69,7 +70,7 @@ module Anneal
       allocate(annealer%state_curr(n_spins))
       annealer%state_curr = state
 
-      IsingHamiltonian = IsingHamiltonianObjective()
+      !IsingHamiltonian = IsingHamiltonianObjective()
 
       ! J matrix
       nnzJ = 10
@@ -98,7 +99,8 @@ module Anneal
       call suscr_insert_entries(J, nnzJ, VJ, IJ, JJ, istat)
       call uscr_end(J, istat)
 
-      IsingHamiltonian%J = J
+      annealer%objective%J = J
+      !IsingHamiltonian%J = J
 
       ! H vector
       nnzH = 10
@@ -127,10 +129,13 @@ module Anneal
       call suscr_insert_entries(H, nnzH, VH, IH, JH, istat)
       call uscr_end(H, istat)
 
-      IsingHamiltonian%H = H
+      annealer%objective%H = H
+      !IsingHamiltonian%H = H
 
-      annealer%objective = IsingHamiltonian
-      energy_initial = IsingHamiltonian%energy(annealer%state_curr)
+      !annealer%objective = IsingHamiltonian
+      !energy_initial = IsingHamiltonian%energy(annealer%state_curr)
+      annealer%objective%energy => ising_hamiltonian
+      energy_initial = annealer%objective%energy(annealer%state_curr)
 
       ! @@@ TODO: Enable the Optimize Method
       ! Currently its null() or something and this line segfaults.
@@ -150,7 +155,7 @@ module Anneal
 
     !> Ising Model Hamiltonian (with Magnetic Moment, mu = 1)
     function ising_hamiltonian(self, state)
-      class(IsingHamiltonianObjective), intent(inout) :: self
+      class(ObjectiveType), intent(inout) :: self
       integer, dimension(:), intent(in) :: state
       real(kind=real32) :: ising_hamiltonian
 
