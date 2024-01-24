@@ -2,8 +2,7 @@ testdrive_dep = dependency('test-drive', required: false)
 
 if testdrive_dep.found()
   tests = [
-    #'cooling',
-    #'objective',
+    'cooling',
     'anneal',
   ]
 
