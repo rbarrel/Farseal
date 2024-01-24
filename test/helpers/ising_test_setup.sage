@@ -77,4 +77,4 @@ def main(seed=None):
     size, nnzJ, nnzH = 16, 100, 12
     make_fortran_input(size, nnzJ, nnzH, seed)
 
-main()
+main(42)
