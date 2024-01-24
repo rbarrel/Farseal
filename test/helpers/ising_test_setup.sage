@@ -1,5 +1,4 @@
 import random
-from pathlib import Path
 from itertools import product
 
 def J(size, nnzJ, seed=None):
@@ -46,35 +45,22 @@ def solve(size, IJ, JJ, VJ, IH, VH):
 
     return best_energy, best_state
 
-def make_fortran_input(
-    size,
-    nnzJ,
-    nnzH,
-    seed=None,
-    path=Path("../ising_test.data")
-):
-    IJ, JJ, VJ = J(size, nnzJ, seed)
-    IH, VH = H(size, nnzH, seed)
-
-    best_energy, best_state = solve(size, IJ, JJ, VJ, IH, VH)
-
-    with open(path, "w") as file:
-        file.write(str(size) + "\n")
-        file.write(str(nnzJ) + "\n")
-        file.write(str(nnzH) + "\n")
-
-        # +1 Because Fortran is 1-indexed
-        for i in range(len(IJ)):
-            file.write(f"{IJ[i] + 1} {JJ[i] + 1} {VJ[i]}\n")
-
-        for i in range(len(IH)):
-            file.write(f"{IH[i] + 1} {VH[i]}\n")
-
-        file.write(str(round(best_energy, 4)) + "\n")
-        file.write(f"{' '.join(map(str, best_state))}\n")
-
 def main(seed=None):
     size, nnzJ, nnzH = 16, 100, 12
-    make_fortran_input(size, nnzJ, nnzH, seed)
+    IJ, JJ, VJ = J(size, nnzJ, seed)
+    IH, VH = H(size, nnzH, seed)
+    best_energy, best_state = solve(size, IJ, JJ, VJ, IH, VH)
+
+    # +1 Because Fortran is 1-indexed
+    print(f"Number of Spins: {size}")
+    print(f"Number of Nonzero J Elements: {nnzJ}")
+    print(f"Number of Nonzero H Elements: {nnzH}")
+    print(f"Ith Index of J Matrix Nonzero Elements: {[v+1 for v in IJ]}")
+    print(f"Jth Index of J Matrix Nonzero Elements: {[v+1 for v in JJ]}")
+    print(f"Value of J Matrix Nonzero Elements: {VJ}")
+    print(f"Ith Index of H Vector Nonzero Elements: {[v+1 for v in IH]}")
+    print(f"Value of H Vector Nonzero Elements: {VH}")
+    print(f"Optimal Ising Model Energy: {best_energy}")
+    print(f"Optimal Ising Model State: {best_state}")
 
 main(42)

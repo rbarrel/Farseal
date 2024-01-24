@@ -28,7 +28,6 @@ module Anneal
       type(error_type), allocatable, intent(out) :: error
       type(DiscreteAnnealType), allocatable :: annealer
       integer :: n_spins, J, H, nnzJ, nnzH
-      ! @@@ TODO: target was necessary for compilation to take place
       integer, dimension(:), allocatable, target :: state
       type(c_ptr), parameter :: eo = c_null_ptr
       integer :: istat = 0
