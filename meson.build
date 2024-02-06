@@ -15,15 +15,21 @@ if fc_id == 'gcc'
   compiler_args = [
     '-Wno-unused-dummy-argument',
     '-Wno-uninitialized',
-    '-Wfatal-errors',
   ]
 
   foreach arg: compiler_args
-    add_project_arguments(arg, language: 'fortran')
+    if not meson.is_subproject()
+      add_global_arguments(arg, language: 'fortran')
+    else
+      add_project_arguments(arg, language: 'fortran')
+    endif
   endforeach
 endif
 
 librsb_dep = dependency('librsb', required: true)
+
+testdrive_sp = subproject('test-drive', required: false)
+testdrive_lib = testdrive_sp.get_variable('testdrive_lib')
 
 srcs = []
 subdir('src')

@@ -1,6 +1,4 @@
-testdrive_dep = dependency('test-drive', required: false)
-
-if testdrive_dep.found()
+if testdrive_lib.found()
   tests = [
     'cooling',
     'anneal',
@@ -17,7 +15,8 @@ if testdrive_dep.found()
   farseal_test = executable(
     'farseal_test',
     sources: [srcs, test_srcs],
-    dependencies: [librsb_dep, testdrive_dep],
+    dependencies: [librsb_dep],
+    link_with: [testdrive_lib],
   )
 
   foreach t: tests

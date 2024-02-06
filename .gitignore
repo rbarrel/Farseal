@@ -33,3 +33,7 @@
 
 # Builds
 build
+
+# Allow for Meson Subprojects
+/subprojects/*
+!/subprojects/*.wrap
