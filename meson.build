@@ -1,6 +1,7 @@
 project(
   'Farseal',
   'fortran',
+  meson_version: '>=0.59',
   version: '0.1',
   default_options: ['werror=true'],
 )
@@ -28,7 +29,7 @@ endif
 
 librsb_dep = dependency('librsb', required: true)
 
-testdrive_sp = subproject('test-drive', required: false)
+testdrive_sp = subproject('test-drive', required: true)
 testdrive_lib = testdrive_sp.get_variable('testdrive_lib')
 
 srcs = []
