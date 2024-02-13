@@ -53,15 +53,13 @@ module Cooling
       call check(error, ending_temp > starting_temp)
       if (allocated(error)) return
 
-      contains
-
-        subroutine FooBar(self)
-          class(CoolingType), intent(inout) :: self
-
-          self%temp = self%temp + 1
-
-        end subroutine FooBar
-
     end subroutine test_custom_cooling
+
+    subroutine FooBar(self)
+      class(CoolingType), intent(inout) :: self
+
+      self%temp = self%temp + 1
+
+    end subroutine FooBar
 
 end module Cooling
