@@ -1,7 +1,6 @@
 project(
   'Farseal',
   'fortran',
-  meson_version: '>=0.59',
   version: '0.1',
   default_options: ['werror=true'],
 )
